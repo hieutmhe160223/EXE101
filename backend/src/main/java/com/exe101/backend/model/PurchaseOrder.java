@@ -60,4 +60,80 @@ public class PurchaseOrder extends AuditableEntity {
 
     protected PurchaseOrder() {
     }
+
+    public PurchaseOrder(
+            String orderCode,
+            UserAccount customer,
+            Integer quantity,
+            BigDecimal totalAmountVnd,
+            BigDecimal depositAmountVnd,
+            BigDecimal finalAmountVnd,
+            String shippingAddress,
+            String customerNote
+    ) {
+        this.orderCode = orderCode;
+        this.customer = customer;
+        this.quantity = quantity;
+        this.totalAmountVnd = totalAmountVnd;
+        this.depositAmountVnd = depositAmountVnd;
+        this.finalAmountVnd = finalAmountVnd;
+        this.shippingAddress = shippingAddress;
+        this.customerNote = customerNote;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getOrderCode() {
+        return orderCode;
+    }
+
+    public UserAccount getCustomer() {
+        return customer;
+    }
+
+    public ProductQuote getProductQuote() {
+        return productQuote;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    public BigDecimal getTotalAmountVnd() {
+        return totalAmountVnd;
+    }
+
+    public BigDecimal getDepositAmountVnd() {
+        return depositAmountVnd;
+    }
+
+    public BigDecimal getFinalAmountVnd() {
+        return finalAmountVnd;
+    }
+
+    public BigDecimal getPaidAmountVnd() {
+        return paidAmountVnd;
+    }
+
+    public String getShippingAddress() {
+        return shippingAddress;
+    }
+
+    public String getCustomerNote() {
+        return customerNote;
+    }
+
+    public void changeStatus(OrderStatus status) {
+        this.status = status;
+    }
+
+    public void addPaidAmount(BigDecimal amountVnd) {
+        this.paidAmountVnd = this.paidAmountVnd.add(amountVnd);
+    }
 }

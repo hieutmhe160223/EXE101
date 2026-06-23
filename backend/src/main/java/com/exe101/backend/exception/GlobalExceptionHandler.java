@@ -1,6 +1,7 @@
 package com.exe101.backend.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,22 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI(), null);
     }
 
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(
+            EntityNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidState(
+            IllegalStateException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI(), null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(
             Exception ex,
@@ -71,4 +88,3 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 }
-

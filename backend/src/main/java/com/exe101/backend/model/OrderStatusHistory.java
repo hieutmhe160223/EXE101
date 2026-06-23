@@ -36,4 +36,31 @@ public class OrderStatusHistory extends AuditableEntity {
 
     protected OrderStatusHistory() {
     }
+
+    public OrderStatusHistory(PurchaseOrder order, OrderStatus status, String location, String note) {
+        this.order = order;
+        this.status = status;
+        this.location = location;
+        this.note = note;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public PurchaseOrder getOrder() {
+        return order;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public String getNote() {
+        return note;
+    }
 }

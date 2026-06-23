@@ -45,4 +45,39 @@ public class ReturnRequest extends AuditableEntity {
 
     protected ReturnRequest() {
     }
+
+    public ReturnRequest(PurchaseOrder order, UserAccount customer, String reason, String evidenceUrl) {
+        this.order = order;
+        this.customer = customer;
+        this.reason = reason;
+        this.evidenceUrl = evidenceUrl;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public PurchaseOrder getOrder() {
+        return order;
+    }
+
+    public UserAccount getCustomer() {
+        return customer;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public String getEvidenceUrl() {
+        return evidenceUrl;
+    }
+
+    public ReturnRequestStatus getStatus() {
+        return status;
+    }
+
+    public String getAdminNote() {
+        return adminNote;
+    }
 }

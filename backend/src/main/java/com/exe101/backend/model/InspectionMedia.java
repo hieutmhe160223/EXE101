@@ -33,4 +33,31 @@ public class InspectionMedia extends AuditableEntity {
 
     protected InspectionMedia() {
     }
+
+    public InspectionMedia(PurchaseOrder order, String mediaType, String mediaUrl, String note) {
+        this.order = order;
+        this.mediaType = mediaType;
+        this.mediaUrl = mediaUrl;
+        this.note = note;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public PurchaseOrder getOrder() {
+        return order;
+    }
+
+    public String getMediaType() {
+        return mediaType;
+    }
+
+    public String getMediaUrl() {
+        return mediaUrl;
+    }
+
+    public String getNote() {
+        return note;
+    }
 }

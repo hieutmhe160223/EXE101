@@ -53,4 +53,60 @@ public class PaymentTransaction extends AuditableEntity {
 
     protected PaymentTransaction() {
     }
+
+    public PaymentTransaction(
+            PurchaseOrder order,
+            UserAccount payer,
+            PaymentType type,
+            PaymentMethod method,
+            PaymentStatus status,
+            BigDecimal amountVnd,
+            String providerTransactionCode,
+            LocalDateTime paidAt
+    ) {
+        this.order = order;
+        this.payer = payer;
+        this.type = type;
+        this.method = method;
+        this.status = status;
+        this.amountVnd = amountVnd;
+        this.providerTransactionCode = providerTransactionCode;
+        this.paidAt = paidAt;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public PurchaseOrder getOrder() {
+        return order;
+    }
+
+    public UserAccount getPayer() {
+        return payer;
+    }
+
+    public PaymentType getType() {
+        return type;
+    }
+
+    public PaymentMethod getMethod() {
+        return method;
+    }
+
+    public PaymentStatus getStatus() {
+        return status;
+    }
+
+    public BigDecimal getAmountVnd() {
+        return amountVnd;
+    }
+
+    public String getProviderTransactionCode() {
+        return providerTransactionCode;
+    }
+
+    public LocalDateTime getPaidAt() {
+        return paidAt;
+    }
 }
