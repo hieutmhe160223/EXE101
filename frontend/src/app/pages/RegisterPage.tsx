@@ -1,22 +1,52 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router"; // 1. Import useNavigate từ "react-router" hoặc "react-router-dom"
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { Card } from "../components/Card";
 import { ShoppingCart, Mail, Lock, User, Phone } from "lucide-react";
 import { useState } from "react";
+import api from "../utils/api";
 
 export function RegisterPage() {
+  const navigate = useNavigate(); 
+
   const [formData, setFormData] = useState({
     fullName: "",
-    phone: "",
+    phoneNumber: "", 
     email: "",
     password: "",
     confirmPassword: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Register:", formData);
+
+    if (formData.password !== formData.confirmPassword) {
+      alert("Mật khẩu xác nhận không trùng khớp!");
+      return;
+    }
+
+    try {
+      const response = await api.post("/auth/register", {
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
+
+      if (typeof response.data === "object") {
+        alert("Đăng ký tài khoản thành công!");
+      } else {
+        alert(response.data || "Đăng ký tài khoản thành công!");
+      }
+
+      navigate("/login");
+      
+    } catch (error: any) {
+      console.error("Lỗi đăng ký:", error);
+      const errorMessage = error.response?.data?.message || error.response?.data || "Đăng ký thất bại, vui lòng thử lại!";
+      alert(errorMessage);
+    }
   };
 
   return (
@@ -59,9 +89,9 @@ export function RegisterPage() {
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
                   type="tel"
-                  value={formData.phone}
+                  value={formData.phoneNumber} 
                   onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
+                    setFormData({ ...formData, phoneNumber: e.target.value }) 
                   }
                   placeholder="0912345678"
                   className="w-full pl-10 pr-4 py-3 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary"

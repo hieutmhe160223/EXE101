@@ -1,23 +1,38 @@
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Search, Link as LinkIcon, Clock, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 
 export function ProductLinkInputPage() {
   const [url, setUrl] = useState("");
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const navigate = useNavigate();
 
-  const recentSearches = [
-    "https://item.taobao.com/item.htm?id=123456789",
-    "https://2.taobao.com/item.htm?id=987654321",
-    "https://market.m.taobao.com/app/idleFish-F2e/widle-taobao-rax/...",
-  ];
+  useEffect(() => {
+    const savedSearches = localStorage.getItem("yufiz_recent_searches");
+    if (savedSearches) {
+      setRecentSearches(JSON.parse(savedSearches));
+    }
+  }, []);
 
   const handleAnalyze = () => {
-    if (url) {
-      navigate("/product/123");
-    }
+    if (!url.trim()) return;
+
+    const updatedSearches = [
+      url.trim(),
+      ...recentSearches.filter((item) => item !== url.trim()),
+    ].slice(0, 5);
+
+    setRecentSearches(updatedSearches);
+    localStorage.setItem("yufiz_recent_searches", JSON.stringify(updatedSearches));
+
+    navigate("/product/123");
+  };
+
+  const handleClearHistory = () => {
+    setRecentSearches([]);
+    localStorage.removeItem("yufiz_recent_searches");
   };
 
   return (
@@ -44,9 +59,10 @@ export function ProductLinkInputPage() {
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://item.taobao.com/item.htm?id=..."
                   className="w-full pl-10 pr-4 py-4 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
                 />
               </div>
-              <Button size="lg" onClick={handleAnalyze}>
+              <Button size="lg" onClick={handleAnalyze} className="flex items-center justify-center">
                 <Search className="w-5 h-5 mr-2" />
                 Phân tích
               </Button>
@@ -98,7 +114,15 @@ export function ProductLinkInputPage() {
 
       {recentSearches.length > 0 && (
         <Card>
-          <h3 className="font-semibold mb-4">Tìm kiếm gần đây</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold">Tìm kiếm gần đây</h3>
+            <button
+              onClick={handleClearHistory}
+              className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+            >
+              Xóa lịch sử
+            </button>
+          </div>
           <div className="space-y-2">
             {recentSearches.map((search, index) => (
               <button

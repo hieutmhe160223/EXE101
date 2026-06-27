@@ -37,8 +37,6 @@ public class UserAccount extends AuditableEntity {
     @Column(length = 500)
     private String avatarUrl;
 
-    @Column(length = 500)
-    private String defaultShippingAddress;
 
     @Column(unique = true, length = 50)
     private String referralCode;
@@ -81,6 +79,9 @@ public class UserAccount extends AuditableEntity {
     public String getFullName() {
         return fullName;
     }
+    public void setFullName(String fullName) {
+    this.fullName = fullName;
+}
 
     public String getRole() {
         return role;
@@ -89,13 +90,12 @@ public class UserAccount extends AuditableEntity {
     public String getPhoneNumber() {
         return phoneNumber;
     }
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
 
     public String getAvatarUrl() {
         return avatarUrl;
-    }
-
-    public String getDefaultShippingAddress() {
-        return defaultShippingAddress;
     }
 
     public String getReferralCode() {
@@ -116,5 +116,9 @@ public class UserAccount extends AuditableEntity {
 
     public AccountStatus getStatus() {
         return status;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

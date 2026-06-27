@@ -1,19 +1,48 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router"; // Thêm useNavigate ở đây
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { ShoppingCart, Mail, Lock } from "lucide-react";
 import { useState } from "react";
+import api from "../utils/api";
 
 export function LoginPage() {
+  const navigate = useNavigate(); 
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     remember: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login:", formData);
+
+    try {
+      const response = await api.post("/auth/login", {
+        email: formData.email,
+        password: formData.password,
+      });
+
+      const data = response.data; 
+
+      localStorage.setItem("token", data.accessToken);
+      localStorage.setItem("userEmail", data.email);
+      localStorage.setItem("userFullName", data.fullName);
+      localStorage.setItem("userRole", data.role);
+      localStorage.setItem("userPhone", data.phoneNumber);
+
+
+      window.dispatchEvent(new Event("authChange"));
+      alert(`Chào mừng quay trở lại, ${data.fullName}!`);
+
+      navigate("/");
+      
+    } catch (error: any) {
+      console.error("Lỗi đăng nhập:", error);
+      
+      const errorMessage = error.response?.data?.message || error.response?.data || "Đăng nhập thất bại!";
+      alert(errorMessage);
+    }
   };
 
   return (
@@ -34,11 +63,11 @@ export function LoginPage() {
         <Card>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Email / Số điện thoại</label>
+              <label className="block text-sm font-medium mb-2">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
-                  type="text"
+                  type="email" 
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
