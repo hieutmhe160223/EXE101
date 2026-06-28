@@ -6,11 +6,14 @@ import com.exe101.backend.model.UserAccount;
 import com.exe101.backend.model.UserAddress;
 import com.exe101.backend.repository.UserAccountRepository;
 import com.exe101.backend.dto.AddressRequest;
+import com.exe101.backend.dto.AddressResponse;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.exe101.backend.repository.UserAddressRepository;
 import java.util.List;
+import java.util.stream.Collectors;
 @Service
 public class UserService {
 
@@ -50,7 +53,7 @@ public class UserService {
     }
 
     @Transactional
-public void addShippingAddress(AddressRequest request) {
+    public void addShippingAddress(AddressRequest request) {
     UserAccount user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản người dùng!"));
 
@@ -71,5 +74,22 @@ public void addShippingAddress(AddressRequest request) {
         user
     );
     userAddressRepository.save(newAddress);
+}
+    @Transactional(readOnly = true)
+public List<AddressResponse> getUserAddressesByEmail(String email) {
+    userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản người dùng!"));
+
+    List<UserAddress> addresses = userAddressRepository.findByUserEmail(email);
+
+    return addresses.stream()
+            .map(addr -> new AddressResponse(
+                    addr.getId(),
+                    addr.getFullName(),
+                    addr.getPhone(),          
+                    addr.getAddressDetail(),  
+                    addr.isDefault()
+            ))
+            .collect(Collectors.toList());
 }
 }

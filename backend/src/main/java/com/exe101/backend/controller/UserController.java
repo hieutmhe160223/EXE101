@@ -1,11 +1,14 @@
 package com.exe101.backend.controller;
 
 import com.exe101.backend.dto.AddressRequest;
+import com.exe101.backend.dto.AddressResponse;
 import com.exe101.backend.dto.ChangePasswordRequest;
-import com.exe101.backend.dto.UpdateProfileRequest; 
+import com.exe101.backend.dto.UpdateProfileRequest;
+import com.exe101.backend.model.UserAddress;
 import com.exe101.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
@@ -38,6 +41,15 @@ public class UserController {
         try {
             userService.addShippingAddress(request);
             return ResponseEntity.ok("Thêm địa chỉ giao hàng thành công!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @GetMapping("/addresses")
+    public ResponseEntity<?> getUserAddresses(@RequestParam String email) {
+        try {
+            List<AddressResponse> addresses = userService.getUserAddressesByEmail(email);
+            return ResponseEntity.ok(addresses);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
