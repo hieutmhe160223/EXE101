@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/exe101_backend?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD:D0@nchuy}
     driver-class-name: ${DB_DRIVER:com.mysql.cj.jdbc.Driver}
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
@@ -15,6 +15,21 @@ spring:
   h2:
     console:
       enabled: false
-
+  sql:
+    init:
+      mode: always
 server:
   port: 8080
+
+momo:
+  partner-code: MOMOBKUN20180810
+  access-key: 72U5IIA6ST3STUO4
+  secret-key: 6zfox05Yv2tB6re8687fEw02n9v1Yv0J
+  endpoint: https://test-payment.momo.vn/v2/gateway/api/create
+  redirect-url: http://localhost:3000/orders/success
+  ipn-url: http://localhost:8080/api/payments/momo/webhook
+
+vietqr:
+  bank-code: VCB
+  account-number: "1234567890"
+  account-name: CONG TY YUFIZ

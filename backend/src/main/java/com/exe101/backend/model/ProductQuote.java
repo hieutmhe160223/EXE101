@@ -82,4 +82,51 @@ public class ProductQuote extends AuditableEntity {
 
     protected ProductQuote() {
     }
+    public BigDecimal getEstimatedTotalVnd() {
+        return estimatedTotalVnd;
+    }
+
+    public String getTranslatedName() {
+        return translatedName;
+    }
+
+    public String getOriginalName() {
+        return originalName;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getSourceUrl() {
+        return sourceUrl;
+    }
+
+    public String getShopName() {
+        return shopName;
+    }
+
+    public BigDecimal getProductPriceCny() {
+        return productPriceCny;
+    }
+
+    public BigDecimal getDomesticShippingFeeCny() {
+        return domesticShippingFeeCny;
+    }
+
+    public BigDecimal getServiceFeeVnd() {
+        return serviceFeeVnd;
+    }
+
+    public BigDecimal getInternationalShippingFeeVnd() {
+        return internationalShippingFeeVnd;
+    }
+
+    public BigDecimal getExchangeRate() {
+        return exchangeRate;
+    }
 }

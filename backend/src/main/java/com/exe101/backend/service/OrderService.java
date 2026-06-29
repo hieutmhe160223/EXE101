@@ -10,6 +10,11 @@ import com.exe101.backend.dto.PaymentTransactionResponse;
 import com.exe101.backend.dto.ReturnRequestCreateRequest;
 import com.exe101.backend.dto.ReturnRequestResponse;
 import com.exe101.backend.dto.VietnamWarehouseConfirmationRequest;
+import com.exe101.backend.dto.DepositPaymentRequest;
+import com.exe101.backend.dto.CreateOrderRequest;
+import com.exe101.backend.dto.CreateOrderResponse;
+import com.exe101.backend.model.UserAccount;
+import com.exe101.backend.model.ProductQuote;
 import com.exe101.backend.model.InspectionMedia;
 import com.exe101.backend.model.OrderStatus;
 import com.exe101.backend.model.OrderStatusHistory;
@@ -18,15 +23,13 @@ import com.exe101.backend.model.PaymentTransaction;
 import com.exe101.backend.model.PaymentType;
 import com.exe101.backend.model.PurchaseOrder;
 import com.exe101.backend.model.ReturnRequest;
-import com.exe101.backend.repository.InspectionMediaRepository;
-import com.exe101.backend.repository.OrderStatusHistoryRepository;
-import com.exe101.backend.repository.PaymentTransactionRepository;
-import com.exe101.backend.repository.PurchaseOrderRepository;
-import com.exe101.backend.repository.ReturnRequestRepository;
+import com.exe101.backend.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.EnumMap;
 import java.util.List;
@@ -53,19 +56,25 @@ public class OrderService {
     private final InspectionMediaRepository inspectionMediaRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final ReturnRequestRepository returnRequestRepository;
+    private final ProductQuoteRepository productQuoteRepository;
+    private final UserAccountRepository userAccountRepository;
 
     public OrderService(
             PurchaseOrderRepository purchaseOrderRepository,
             OrderStatusHistoryRepository orderStatusHistoryRepository,
             InspectionMediaRepository inspectionMediaRepository,
             PaymentTransactionRepository paymentTransactionRepository,
-            ReturnRequestRepository returnRequestRepository
+            ReturnRequestRepository returnRequestRepository,
+            UserAccountRepository userAccountRepository,
+            ProductQuoteRepository productQuoteRepository
     ) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.orderStatusHistoryRepository = orderStatusHistoryRepository;
         this.inspectionMediaRepository = inspectionMediaRepository;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.returnRequestRepository = returnRequestRepository;
+        this.userAccountRepository = userAccountRepository;
+        this.productQuoteRepository = productQuoteRepository;
     }
 
     @Transactional(readOnly = true)
@@ -317,5 +326,108 @@ public class OrderService {
                 payment.getProviderTransactionCode(),
                 payment.getPaidAt()
         );
+    }
+    @Transactional
+    public CreateOrderResponse createOrder(CreateOrderRequest request) {
+        UserAccount customer = userAccountRepository.findById(request.customerId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        ProductQuote quote = productQuoteRepository.findById(request.productQuoteId())
+                .orElseThrow(() -> new EntityNotFoundException("Product quote not found"));
+
+        // Tính tiền
+        BigDecimal unitPrice = quote.getEstimatedTotalVnd();
+        BigDecimal total = unitPrice.multiply(BigDecimal.valueOf(request.quantity()));
+        BigDecimal deposit = total.multiply(new BigDecimal("0.7"))
+                .setScale(0, RoundingMode.HALF_UP);
+        BigDecimal finalAmt = total.subtract(deposit);
+
+        String orderCode = "YFZ" + System.currentTimeMillis();
+        String address = request.shippingAddress() != null
+                ? request.shippingAddress()
+                : customer.getDefaultShippingAddress();
+
+        PurchaseOrder order = new PurchaseOrder(
+                orderCode,
+                customer,
+                request.quantity(),
+                total,
+                deposit,
+                finalAmt,
+                address,
+                request.customerNote()
+        );
+        order.setProductQuote(quote);
+        purchaseOrderRepository.save(order);
+
+        orderStatusHistoryRepository.save(new OrderStatusHistory(
+                order,
+                OrderStatus.WAITING_DEPOSIT,
+                null,
+                "Don hang vua duoc tao, cho khach hang dat coc 70%"
+        ));
+
+        return new CreateOrderResponse(
+                order.getId(),
+                order.getOrderCode(),
+                order.getStatus(),
+                order.getQuantity(),
+                // Thông tin sản phẩm
+                quote.getTranslatedName() != null ? quote.getTranslatedName() : quote.getOriginalName(),
+                quote.getImageUrl(),
+                request.variantSelected(),
+                // Địa chỉ
+                order.getShippingAddress(),
+                order.getCustomerNote(),
+                // Chi phí
+                quote.getProductPriceCny(),
+                quote.getDomesticShippingFeeCny(),
+                quote.getServiceFeeVnd(),
+                quote.getInternationalShippingFeeVnd(),
+                quote.getExchangeRate(),
+                // Tổng
+                order.getTotalAmountVnd(),
+                order.getDepositAmountVnd(),
+                order.getFinalAmountVnd(),
+                order.getCreatedAt()
+        );
+    }
+
+    @Transactional
+    public PaymentTransactionResponse payDeposit(Long orderId, DepositPaymentRequest request) {
+        PurchaseOrder order = findCustomerOrder(orderId, request.customerId());
+
+        if (order.getStatus() != OrderStatus.WAITING_DEPOSIT) {
+            throw new IllegalStateException("Order is not waiting for deposit");
+        }
+
+        // Kiểm tra đã đặt cọc chưa
+        paymentTransactionRepository
+                .findFirstByOrderIdAndTypeOrderByCreatedAtDesc(orderId, PaymentType.DEPOSIT_70)
+                .filter(t -> t.getStatus() == PaymentStatus.PAID)
+                .ifPresent(t -> { throw new IllegalStateException("Deposit already paid"); });
+
+        LocalDateTime now = LocalDateTime.now();
+        PaymentTransaction payment = paymentTransactionRepository.save(new PaymentTransaction(
+                order,
+                order.getCustomer(),
+                PaymentType.DEPOSIT_70,
+                request.paymentMethod(),
+                PaymentStatus.PAID,
+                order.getDepositAmountVnd(),
+                request.providerTransactionCode(),
+                now
+        ));
+
+        order.addPaidAmount(order.getDepositAmountVnd());
+        order.changeStatus(OrderStatus.DEPOSIT_PAID);
+        orderStatusHistoryRepository.save(new OrderStatusHistory(
+                order,
+                OrderStatus.DEPOSIT_PAID,
+                null,
+                "Khach hang da dat coc 70%"
+        ));
+
+        return toPaymentResponse(payment);
     }
 }

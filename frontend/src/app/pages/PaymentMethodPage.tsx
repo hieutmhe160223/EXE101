@@ -22,12 +22,6 @@ export function PaymentMethodPage() {
       description: "Thanh toán qua ví điện tử MoMo",
     },
     {
-      id: "zalopay",
-      name: "ZaloPay",
-      icon: CreditCard,
-      description: "Thanh toán qua ví ZaloPay",
-    },
-    {
       id: "wallet",
       name: "Ví Yufiz",
       icon: Wallet,

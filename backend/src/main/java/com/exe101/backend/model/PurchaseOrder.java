@@ -58,6 +58,7 @@ public class PurchaseOrder extends AuditableEntity {
     @Column(length = 1000)
     private String customerNote;
 
+
     protected PurchaseOrder() {
     }
 
@@ -131,6 +132,10 @@ public class PurchaseOrder extends AuditableEntity {
 
     public void changeStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public void setProductQuote(ProductQuote productQuote) {
+        this.productQuote = productQuote;
     }
 
     public void addPaidAmount(BigDecimal amountVnd) {
