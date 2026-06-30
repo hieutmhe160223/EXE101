@@ -1,0 +1,5 @@
+INSERT IGNORE INTO user_accounts (id, email, password_hash, full_name, role, phone_number, default_shipping_address, wallet_balance, loyalty_points, status, created_at, updated_at)
+VALUES (1, 'test@yufiz.com', '$2a$10$abcdefgh', 'Nguyen Van A', 'CUSTOMER', '0912345678', '125 Duong ABC, Quan 1, TP HCM', 500000, 0, 'ACTIVE', NOW(), NOW());
+
+INSERT IGNORE INTO product_quotes (id, marketplace, source_url, original_name, translated_name, image_url, shop_name, shop_level, shop_rating, product_price_cny, domestic_shipping_fee_cny, service_fee_vnd, international_shipping_fee_vnd, exchange_rate, estimated_total_vnd, created_at, updated_at)
+VALUES (1, 'XIANYU', 'https://2.taobao.com/item.htm?id=666777888', '潮流T恤', 'Áo thun nam nữ unisex mùa hè', 'https://img.alicdn.com/sample.jpg', 'Thoi Trang Store', 'L7', 4.8, 89.00, 10.00, 4500, 25000, 3500, 412775, NOW(), NOW());
