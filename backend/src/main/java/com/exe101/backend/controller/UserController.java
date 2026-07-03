@@ -54,4 +54,62 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    @PutMapping("/addresses/{id}")
+    public ResponseEntity<?> updateAddress(@PathVariable Long id, @RequestBody AddressRequest request) {
+    try {
+        userService.updateShippingAddress(id, request);
+        return ResponseEntity.ok("Cập nhật địa chỉ thành công!");
+    } catch (RuntimeException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+}
+
+    @DeleteMapping("/addresses/{id}")
+    public ResponseEntity<?> deleteAddress(@PathVariable Long id) {
+    try {
+        userService.deleteShippingAddress(id);
+        return ResponseEntity.ok("Xóa địa chỉ giao hàng thành công!");
+    } catch (RuntimeException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+    }
+
+    @GetMapping("/banks")
+    public ResponseEntity<?> getBankAccounts(@RequestParam String email) {
+        try {
+            return ResponseEntity.ok(userService.getBankAccounts(email));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/banks")
+    public ResponseEntity<?> addBankAccount(@RequestBody com.exe101.backend.dto.BankRequest request) {
+        try {
+            userService.addBankAccount(request);
+            return ResponseEntity.ok("Thêm tài khoản ngân hàng thành công!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/banks/{id}")
+    public ResponseEntity<?> updateBankAccount(@PathVariable Long id, @RequestBody com.exe101.backend.dto.BankRequest request) {
+        try {
+            userService.updateBankAccount(id, request);
+            return ResponseEntity.ok("Cập nhật tài khoản ngân hàng thành công!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/banks/{id}")
+    public ResponseEntity<?> deleteBankAccount(@PathVariable Long id) {
+        try {
+            userService.deleteBankAccount(id);
+            return ResponseEntity.ok("Xóa tài khoản ngân hàng thành công!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }
