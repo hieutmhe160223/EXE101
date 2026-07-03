@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "user_accounts")
@@ -34,9 +35,11 @@ public class UserAccount extends AuditableEntity {
     @Column(length = 20)
     private String phoneNumber;
 
+    @Column(length = 20)
+    private String dateOfBirth;
+
     @Column(length = 500)
     private String avatarUrl;
-
 
     @Column(unique = true, length = 50)
     private String referralCode;
@@ -92,6 +95,14 @@ public class UserAccount extends AuditableEntity {
     }
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getDateOfBirth() {
+    return dateOfBirth;
+    }   
+
+    public void setDateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
     }
 
     public String getAvatarUrl() {

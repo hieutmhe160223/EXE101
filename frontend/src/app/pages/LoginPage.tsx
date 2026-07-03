@@ -30,7 +30,9 @@ export function LoginPage() {
       localStorage.setItem("userFullName", data.fullName);
       localStorage.setItem("userRole", data.role);
       localStorage.setItem("userPhone", data.phoneNumber);
-
+      if (data.dob) {
+        localStorage.setItem("userDob", data.dob);
+      }
 
       window.dispatchEvent(new Event("authChange"));
       alert(`Chào mừng quay trở lại, ${data.fullName}!`);

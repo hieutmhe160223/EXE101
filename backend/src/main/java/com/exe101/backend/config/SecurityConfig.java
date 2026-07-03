@@ -27,10 +27,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) 
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/auth/register","/api/user/change-password", "/api/orders/**", "/actuator/health").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register","/api/user/change-password", "/api/user/profile", "/api/orders/**", "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/addresses").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/addresses").permitAll()
                         .requestMatchers("/api/user/addresses/**").permitAll()
+                        .requestMatchers("/api/user/banks", "/api/user/banks/**").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(form -> form.disable())

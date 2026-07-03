@@ -6,7 +6,8 @@ public record LoginResponse(
         String email,
         String fullName,
         String role,
-        String phoneNumber
+        String phoneNumber,
+        String dob
 ) {
 }
 

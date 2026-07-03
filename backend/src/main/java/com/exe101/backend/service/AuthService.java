@@ -30,7 +30,8 @@ public class AuthService {
                 user.getEmail(),
                 user.getFullName(),
                 user.getRole(),
-                user.getPhoneNumber()
+                user.getPhoneNumber(),
+                user.getDateOfBirth()
         );
     }
 
