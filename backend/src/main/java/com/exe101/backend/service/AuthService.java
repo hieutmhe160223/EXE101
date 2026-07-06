@@ -27,6 +27,7 @@ public class AuthService {
         return new LoginResponse(
                 accessToken,
                 "Bearer",
+                user.getId(),
                 user.getEmail(),
                 user.getFullName(),
                 user.getRole(),

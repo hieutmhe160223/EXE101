@@ -26,6 +26,7 @@ export function LoginPage() {
       const data = response.data; 
 
       localStorage.setItem("token", data.accessToken);
+      localStorage.setItem("userId", String(data.id));
       localStorage.setItem("userEmail", data.email);
       localStorage.setItem("userFullName", data.fullName);
       localStorage.setItem("userRole", data.role);

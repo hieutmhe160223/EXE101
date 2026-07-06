@@ -8,6 +8,22 @@ spring:
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
+  sql:
+    init:
+      mode: never
   h2:
     console:
       enabled: false
+
+vietqr:
+  bank-code: VCB
+  account-number: '0000000000'
+  account-name: EXE101
+
+momo:
+  partner-code: MOMOBKUN20180529
+  access-key: F8BBA84256C589CF
+  secret-key: local-secret-key
+  endpoint: https://test-payment.momo.vn/v2/gateway/api/create
+  redirect-url: http://localhost:8080/api/payments/momo/return
+  ipn-url: http://localhost:8080/api/payments/momo/ipn
