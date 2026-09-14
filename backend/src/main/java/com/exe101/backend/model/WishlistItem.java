@@ -31,4 +31,21 @@ public class WishlistItem extends AuditableEntity {
 
     protected WishlistItem() {
     }
+
+    public WishlistItem(UserAccount user, ProductQuote productQuote) {
+        this.user = user;
+        this.productQuote = productQuote;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public UserAccount getUser() {
+        return user;
+    }
+
+    public ProductQuote getProductQuote() {
+        return productQuote;
+    }
 }

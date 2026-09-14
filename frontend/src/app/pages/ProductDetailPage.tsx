@@ -4,6 +4,9 @@ import { Heart, ShoppingCart, Star, Shield, TrendingUp, ChevronLeft, MessageCirc
 import { Link, useNavigate, useParams } from "react-router";
 import { useState, useEffect } from "react";
 import api from "../utils/api";
+import { getUserId } from "../utils/auth";
+import { getCurrentUserId } from "../utils/auth";
+import { getCurrentUserId } from "../utils/auth";
 
 interface ProductQuote {
   quoteId: number;
@@ -40,12 +43,64 @@ export function ProductDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<ProductQuote | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Wishlist states
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const userId = getUserId();
 
   useEffect(() => {
     if (id) {
       fetchProductDetails();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (product) {
+      checkWishlistStatus();
+    }
+  }, [product]);
+
+  const checkWishlistStatus = async () => {
+    if (!product || !userId) return;
+    
+    try {
+      const response = await api.get(`/wishlist/check/${product.quoteId}?userId=${userId}`);
+      setIsInWishlist(response.data);
+    } catch (err) {
+      console.error("Failed to check wishlist status:", err);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (!product || !userId) {
+      setError("Vui lòng đăng nhập để sử dụng chức năng này");
+      return;
+    }
+    
+    setWishlistLoading(true);
+    
+    try {
+      const response = await api.post("/wishlist/toggle", {
+        userId,
+        productQuoteId: product.quoteId
+      });
+      
+      setIsInWishlist(response.data.inWishlist);
+      
+      // Optional: Show toast notification
+      // toast.success(response.data.message);
+    } catch (err: any) {
+      console.error("Failed to toggle wishlist:", err);
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Đã có lỗi xảy ra khi cập nhật danh sách yêu thích");
+      }
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   const fetchProductDetails = async () => {
     setLoading(true);
@@ -188,9 +243,20 @@ export function ProductDetailPage() {
           </div>
 
           <div className="flex gap-3 mb-6">
-            <Button variant="outline" className="flex-1">
-              <Heart className="w-5 h-5 mr-2" />
-              Yêu thích
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={handleToggleWishlist}
+              disabled={wishlistLoading}
+            >
+              {wishlistLoading ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : isInWishlist ? (
+                <Heart className="w-5 h-5 mr-2 fill-red-500 text-red-500" />
+              ) : (
+                <Heart className="w-5 h-5 mr-2" />
+              )}
+              {wishlistLoading ? "Đang xử lý..." : (isInWishlist ? "Đã yêu thích" : "Yêu thích")}
             </Button>
             <Button 
               className="flex-1" 
@@ -208,14 +274,15 @@ export function ProductDetailPage() {
           </div>
 
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="flex-1">
+            {/* Temporarily disabled - Similar products feature not implemented yet */}
+            {/* <Button variant="ghost" size="sm" className="flex-1">
               <MessageCircle className="w-4 h-4 mr-2" />
               Chat với shop
             </Button>
             <Button variant="ghost" size="sm" className="flex-1">
               <Package className="w-4 h-4 mr-2" />
               Tìm sản phẩm tương tự
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>

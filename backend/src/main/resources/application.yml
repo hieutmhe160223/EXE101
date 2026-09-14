@@ -35,12 +35,12 @@ vietqr:
   account-name: CONG TY YUFIZ
 
 apify:
-  token: 
+  token:
   base-url: https://api.apify.com/v2
   actor-item-detail: zen-studio~goofish-xianyu-item-detail-scraper
 
 rapidapi:
-  key:
+  key: 
   translate:
     host: google-api31.p.rapidapi.com
     url: https://google-api31.p.rapidapi.com/gtranslate

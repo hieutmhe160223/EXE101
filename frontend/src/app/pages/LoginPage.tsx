@@ -1,9 +1,10 @@
-import { Link, useNavigate } from "react-router"; // Thêm useNavigate ở đây
+import { Link, useNavigate } from "react-router";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { ShoppingCart, Mail, Lock } from "lucide-react";
 import { useState } from "react";
 import api from "../utils/api";
+import { setAuthData } from "../utils/auth";
 
 export function LoginPage() {
   const navigate = useNavigate(); 
@@ -25,6 +26,7 @@ export function LoginPage() {
 
       const data = response.data; 
 
+      localStorage.setItem("userId", data.userId.toString());
       localStorage.setItem("token", data.accessToken);
       localStorage.setItem("userEmail", data.email);
       localStorage.setItem("userFullName", data.fullName);

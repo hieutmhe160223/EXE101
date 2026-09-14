@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router'; 
 import { ShoppingCart, Bell, User, Menu, Heart, Wallet, LogOut } from 'lucide-react';
+import { clearUserData, isLoggedIn as checkIsLoggedIn, getCurrentUserName } from '../utils/auth';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -12,10 +13,8 @@ export const Header: React.FC = () => {
 
   React.useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem("token");
-      setIsLoggedIn(!!token);
-
-      const fullName = localStorage.getItem("userFullName") || "Tài khoản";
+      setIsLoggedIn(checkIsLoggedIn());
+      const fullName = getCurrentUserName() || "Tài khoản";
       setUserFullName(fullName);
     };
 
@@ -31,7 +30,7 @@ export const Header: React.FC = () => {
   }, [location]); 
 
   const handleLogout = () => {
-    localStorage.clear(); 
+    clearUserData();
     setIsLoggedIn(false); 
     alert("Đã đăng xuất tài khoản!");
     navigate("/");

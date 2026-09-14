@@ -1,27 +1,108 @@
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { Trash2, ShoppingCart, Heart } from "lucide-react";
-import { Link } from "react-router";
+import { Trash2, ShoppingCart, Heart, Loader2, AlertCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import api from "../utils/api";
+import { getCurrentUserId, isAuthenticated } from "../utils/auth";
+
+interface WishlistItem {
+  wishlistId: number;
+  quoteId: number;
+  productNameZh: string;
+  productNameVi: string;
+  productImage: string;
+  priceCny: number;
+  priceVndEstimate: number;
+  exchangeRate: number;
+  addedAt: string;
+}
 
 export function WishlistPage() {
-  const wishlistItems = [
-    {
-      id: 1,
-      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300",
-      nameVi: "Áo thun nam nữ unisex mùa hè",
-      nameZh: "夏季新款潮流T恤",
-      price: 89,
-      seller: "时尚潮流店",
-    },
-    {
-      id: 2,
-      image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300",
-      nameVi: "Giày thể thao nam nữ",
-      nameZh: "运动鞋男女款",
-      price: 156,
-      seller: "运动专卖",
-    },
-  ];
+  const navigate = useNavigate();
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<number | null>(null);
+  const userId = getCurrentUserId();
+
+  useEffect(() => {
+    // Check if user is logged in
+    if (!isLoggedIn() || !userId) {
+      setError("Vui lòng đăng nhập để xem danh sách yêu thích");
+      setLoading(false);
+      return;
+    }
+    
+    fetchWishlist();
+  }, [userId]);
+
+  const fetchWishlist = async () => {
+    if (!userId) return;
+    
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await api.get(`/wishlist?userId=${userId}`);
+      setWishlistItems(response.data);
+    } catch (err: any) {
+      console.error("Failed to fetch wishlist:", err);
+      if (err.response?.status === 404) {
+        setError("Không tìm thấy danh sách yêu thích");
+      } else {
+        setError("Đã có lỗi xảy ra khi tải danh sách yêu thích");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemove = async (quoteId: number) => {
+    if (!userId) return;
+    
+    setRemovingId(quoteId);
+
+    try {
+      await api.delete(`/wishlist/${quoteId}?userId=${userId}`);
+      // Remove from local state
+      setWishlistItems(items => items.filter(item => item.quoteId !== quoteId));
+    } catch (err: any) {
+      console.error("Failed to remove from wishlist:", err);
+      setError("Đã có lỗi xảy ra khi xóa sản phẩm");
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Đang tải danh sách yêu thích...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <Card>
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <AlertCircle className="w-16 h-16 text-destructive" />
+            <p className="text-lg font-medium">{error}</p>
+            {!isLoggedIn() ? (
+              <Button onClick={() => navigate("/login")}>Đăng nhập</Button>
+            ) : (
+              <Button onClick={fetchWishlist}>Thử lại</Button>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -47,27 +128,49 @@ export function WishlistPage() {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {wishlistItems.map((item) => (
-            <Card key={item.id} hover>
+            <Card key={item.wishlistId} hover>
               <div className="aspect-square bg-muted rounded-lg overflow-hidden mb-4">
-                <img src={item.image} alt={item.nameVi} className="w-full h-full object-cover" />
+                {item.productImage ? (
+                  <img 
+                    src={item.productImage} 
+                    alt={item.productNameVi} 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    Không có hình ảnh
+                  </div>
+                )}
               </div>
-              <h3 className="font-semibold mb-1">{item.nameVi}</h3>
-              <p className="text-sm text-muted-foreground mb-3">{item.nameZh}</p>
-              <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-xl font-bold text-primary">¥{item.price}</span>
+              <h3 className="font-semibold mb-1">{item.productNameVi}</h3>
+              <p className="text-sm text-muted-foreground mb-3">{item.productNameZh}</p>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-xl font-bold text-primary">¥{item.priceCny.toFixed(2)}</span>
                 <span className="text-sm text-muted-foreground">
-                  ≈ {(item.price * 3650).toLocaleString()}₫
+                  ≈ {item.priceVndEstimate.toLocaleString()}₫
                 </span>
               </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Thêm vào: {new Date(item.addedAt).toLocaleDateString('vi-VN')}
+              </p>
               <div className="flex gap-2">
-                <Link to={`/product/${item.id}`} className="flex-1">
+                <Link to={`/product/${item.quoteId}`} className="flex-1">
                   <Button className="w-full" size="sm">
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     Đặt hàng
                   </Button>
                 </Link>
-                <Button variant="outline" size="sm">
-                  <Trash2 className="w-4 h-4" />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleRemove(item.quoteId)}
+                  disabled={removingId === item.quoteId}
+                >
+                  {removingId === item.quoteId ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </Card>

@@ -4,6 +4,7 @@ import { MapPin, Package, CreditCard, ArrowRight, Loader2, AlertCircle } from "l
 import { useNavigate, useLocation } from "react-router";
 import { useState, useEffect } from "react";
 import api from "../utils/api";
+import { getCurrentUserId, isLoggedIn } from "../utils/auth";
 
 interface LocationState {
   quoteId: number;
@@ -50,15 +51,22 @@ export function OrderConfirmationPage() {
   const [customerNote, setCustomerNote] = useState("");
   const [quantity] = useState(state?.quantity || 1);
   const [selectedVariant] = useState(state?.selectedVariant || "");
+  const userId = getCurrentUserId();
 
   useEffect(() => {
+    if (!isLoggedIn() || !userId) {
+      setError("Vui lòng đăng nhập để đặt hàng");
+      setLoading(false);
+      return;
+    }
+    
     if (!state?.quoteId) {
       setError("Không tìm thấy thông tin sản phẩm");
       setLoading(false);
       return;
     }
     fetchQuoteDetails();
-  }, [state]);
+  }, [state, userId]);
 
   const fetchQuoteDetails = async () => {
     setLoading(true);
@@ -80,6 +88,11 @@ export function OrderConfirmationPage() {
   };
 
   const handleCreateOrder = async () => {
+    if (!userId) {
+      setError("Vui lòng đăng nhập để đặt hàng");
+      return;
+    }
+    
     if (!shippingAddress.trim()) {
       setError("Vui lòng nhập địa chỉ giao hàng");
       return;
@@ -89,11 +102,8 @@ export function OrderConfirmationPage() {
     setError(null);
 
     try {
-      // TODO: Replace with actual customerId from auth context
-      const customerId = 1; // Temporary hardcoded value
-
       const response = await api.post("/orders", {
-        customerId,
+        customerId: userId,
         productQuoteId: state.quoteId,
         quantity,
         variantSelected: selectedVariant,
@@ -141,9 +151,11 @@ export function OrderConfirmationPage() {
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <AlertCircle className="w-16 h-16 text-destructive" />
             <p className="text-lg font-medium">{error}</p>
-            <Button onClick={() => navigate("/order/new")}>
-              Quay lại trang chủ
-            </Button>
+            {!isLoggedIn() ? (
+              <Button onClick={() => navigate("/login")}>Đăng nhập</Button>
+            ) : (
+              <Button onClick={() => navigate("/order/new")}>Quay lại trang chủ</Button>
+            )}
           </div>
         </Card>
       </div>

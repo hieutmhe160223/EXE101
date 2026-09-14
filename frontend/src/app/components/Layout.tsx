@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { ShoppingCart, Package, Wallet, Gift, Bell, User, Menu, X, Search, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
+import { clearUserData, isLoggedIn as checkIsLoggedIn, getCurrentUserName } from "../utils/auth";
 
 export function Layout() {
   const location = useLocation();
@@ -14,10 +15,8 @@ export function Layout() {
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem("token");
-      setIsLoggedIn(!!token);
-
-      const fullName = localStorage.getItem("userFullName") || "Tài khoản";
+      setIsLoggedIn(checkIsLoggedIn());
+      const fullName = getCurrentUserName() || "Tài khoản";
       setUserFullName(fullName);
     };
 
@@ -33,7 +32,7 @@ export function Layout() {
   }, [location]);
 
   const handleLogout = () => {
-    localStorage.clear();
+    clearUserData();
     setIsLoggedIn(false);
     alert("Đã đăng xuất tài khoản!");
     navigate("/");
