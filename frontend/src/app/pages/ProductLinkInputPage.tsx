@@ -1,12 +1,17 @@
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { Search, Link as LinkIcon, Clock, TrendingUp } from "lucide-react";
+import { Search, Link as LinkIcon, Clock, TrendingUp, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
+import api from "../utils/api";
 
 export function ProductLinkInputPage() {
   const [url, setUrl] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [exchangeRateUpdatedAt, setExchangeRateUpdatedAt] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -14,20 +19,63 @@ export function ProductLinkInputPage() {
     if (savedSearches) {
       setRecentSearches(JSON.parse(savedSearches));
     }
+    
+    // Fetch exchange rate on mount
+    fetchExchangeRate();
   }, []);
 
-  const handleAnalyze = () => {
-    if (!url.trim()) return;
+  const fetchExchangeRate = async () => {
+    try {
+      // Try to get exchange rate from a recent quote or config endpoint
+      // For now, we'll set a default until we have a specific endpoint
+      setExchangeRate(3650);
+      setExchangeRateUpdatedAt(new Date().toLocaleString('vi-VN'));
+    } catch (err) {
+      console.error("Failed to fetch exchange rate:", err);
+    }
+  };
 
-    const updatedSearches = [
-      url.trim(),
-      ...recentSearches.filter((item) => item !== url.trim()),
-    ].slice(0, 5);
+  const handleAnalyze = async () => {
+    if (!url.trim()) {
+      setError("Vui lòng nhập link sản phẩm");
+      return;
+    }
 
-    setRecentSearches(updatedSearches);
-    localStorage.setItem("yufiz_recent_searches", JSON.stringify(updatedSearches));
+    setLoading(true);
+    setError(null);
 
-    navigate("/product/123");
+    try {
+      // Set timeout riêng cho API analyze - 3 phút (180 giây)
+      const response = await api.post("/quotes/analyze", { url: url.trim() }, {
+        timeout: 180000 // 3 minutes for product scraping
+      });
+      const quoteId = response.data.quoteId;
+
+      // Save to recent searches
+      const updatedSearches = [
+        url.trim(),
+        ...recentSearches.filter((item) => item !== url.trim()),
+      ].slice(0, 5);
+
+      setRecentSearches(updatedSearches);
+      localStorage.setItem("yufiz_recent_searches", JSON.stringify(updatedSearches));
+
+      // Navigate to product detail page with the quote ID
+      navigate(`/product/${quoteId}`);
+    } catch (err: any) {
+      console.error("Analysis error:", err);
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else if (err.response?.status === 422) {
+        setError("Link không hợp lệ hoặc không thể phân tích sản phẩm");
+      } else if (err.code === 'ECONNABORTED') {
+        setError("Yêu cầu hết thời gian chờ. Vui lòng thử lại");
+      } else {
+        setError("Đã có lỗi xảy ra, vui lòng thử lại");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClearHistory = () => {
@@ -46,6 +94,13 @@ export function ProductLinkInputPage() {
 
       <Card className="mb-8">
         <div className="space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+          
           <div>
             <label className="block text-sm font-medium mb-2">
               Link sản phẩm Taobao / Xianyu
@@ -56,15 +111,24 @@ export function ProductLinkInputPage() {
                 <input
                   type="url"
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    setError(null);
+                  }}
                   placeholder="https://item.taobao.com/item.htm?id=..."
                   className="w-full pl-10 pr-4 py-4 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                  onKeyDown={(e) => e.key === "Enter" && !loading && handleAnalyze()}
+                  disabled={loading}
                 />
               </div>
-              <Button size="lg" onClick={handleAnalyze} className="flex items-center justify-center">
+              <Button 
+                size="lg" 
+                onClick={handleAnalyze} 
+                className="flex items-center justify-center"
+                disabled={loading}
+              >
                 <Search className="w-5 h-5 mr-2" />
-                Phân tích
+                {loading ? "Đang phân tích..." : "Phân tích"}
               </Button>
             </div>
           </div>
@@ -86,10 +150,10 @@ export function ProductLinkInputPage() {
             <div>
               <h3 className="font-semibold mb-2">Tỷ giá hôm nay</h3>
               <div className="text-2xl font-bold text-primary mb-1">
-                1 ¥ = 3,650 đ
+                {exchangeRate ? `1 ¥ = ${exchangeRate.toLocaleString()} đ` : "Đang tải..."}
               </div>
               <p className="text-sm text-muted-foreground">
-                Cập nhật: 16/06/2026 10:30
+                {exchangeRateUpdatedAt ? `Cập nhật: ${exchangeRateUpdatedAt}` : ""}
               </p>
             </div>
           </div>

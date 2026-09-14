@@ -1,5 +1,7 @@
 package com.exe101.backend.service;
 
+import com.exe101.backend.dto.CreateOrderRequest;
+import com.exe101.backend.dto.CreateOrderResponse;
 import com.exe101.backend.dto.FinalPaymentRequest;
 import com.exe101.backend.dto.InspectionMediaCreateRequest;
 import com.exe101.backend.dto.InspectionMediaResponse;
@@ -10,24 +12,32 @@ import com.exe101.backend.dto.PaymentTransactionResponse;
 import com.exe101.backend.dto.ReturnRequestCreateRequest;
 import com.exe101.backend.dto.ReturnRequestResponse;
 import com.exe101.backend.dto.VietnamWarehouseConfirmationRequest;
+import com.exe101.backend.model.FeeConfig;
 import com.exe101.backend.model.InspectionMedia;
 import com.exe101.backend.model.OrderStatus;
 import com.exe101.backend.model.OrderStatusHistory;
 import com.exe101.backend.model.PaymentStatus;
 import com.exe101.backend.model.PaymentTransaction;
 import com.exe101.backend.model.PaymentType;
+import com.exe101.backend.model.ProductQuote;
 import com.exe101.backend.model.PurchaseOrder;
 import com.exe101.backend.model.ReturnRequest;
+import com.exe101.backend.model.UserAccount;
 import com.exe101.backend.repository.InspectionMediaRepository;
 import com.exe101.backend.repository.OrderStatusHistoryRepository;
 import com.exe101.backend.repository.PaymentTransactionRepository;
+import com.exe101.backend.repository.ProductQuoteRepository;
 import com.exe101.backend.repository.PurchaseOrderRepository;
 import com.exe101.backend.repository.ReturnRequestRepository;
+import com.exe101.backend.repository.UserAccountRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -53,19 +63,28 @@ public class OrderService {
     private final InspectionMediaRepository inspectionMediaRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final ReturnRequestRepository returnRequestRepository;
+    private final ProductQuoteRepository productQuoteRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final FeeConfigService feeConfigService;
 
     public OrderService(
             PurchaseOrderRepository purchaseOrderRepository,
             OrderStatusHistoryRepository orderStatusHistoryRepository,
             InspectionMediaRepository inspectionMediaRepository,
             PaymentTransactionRepository paymentTransactionRepository,
-            ReturnRequestRepository returnRequestRepository
+            ReturnRequestRepository returnRequestRepository,
+            ProductQuoteRepository productQuoteRepository,
+            UserAccountRepository userAccountRepository,
+            FeeConfigService feeConfigService
     ) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.orderStatusHistoryRepository = orderStatusHistoryRepository;
         this.inspectionMediaRepository = inspectionMediaRepository;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.returnRequestRepository = returnRequestRepository;
+        this.productQuoteRepository = productQuoteRepository;
+        this.userAccountRepository = userAccountRepository;
+        this.feeConfigService = feeConfigService;
     }
 
     @Transactional(readOnly = true)
@@ -74,6 +93,94 @@ public class OrderService {
                 .stream()
                 .map(this::toSummaryResponse)
                 .toList();
+    }
+
+    @Transactional
+    public CreateOrderResponse createOrder(CreateOrderRequest request) {
+        // Fetch ProductQuote
+        ProductQuote quote = productQuoteRepository.findById(request.productQuoteId())
+                .orElseThrow(() -> new EntityNotFoundException("ProductQuote not found with id: " + request.productQuoteId()));
+
+        // Fetch Customer
+        UserAccount customer = userAccountRepository.findById(request.customerId())
+                .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + request.customerId()));
+
+        // Get Fee Config
+        FeeConfig feeConfig = feeConfigService.getConfig();
+
+        // Generate unique order code
+        String orderCode = generateOrderCode();
+
+        // Calculate amounts
+        BigDecimal productPriceCny = quote.getProductPriceCny().multiply(new BigDecimal(request.quantity()));
+        BigDecimal domesticShippingFeeCny = quote.getDomesticShippingFeeCny();
+        BigDecimal serviceFeeVnd = quote.getServiceFeeVnd().multiply(new BigDecimal(request.quantity()));
+        BigDecimal internationalShippingFeeVnd = quote.getInternationalShippingFeeVnd();
+        BigDecimal exchangeRate = quote.getExchangeRate();
+
+        // Total CNY to VND
+        BigDecimal totalCnyInVnd = productPriceCny.add(domesticShippingFeeCny)
+                .multiply(exchangeRate)
+                .setScale(0, RoundingMode.HALF_UP);
+
+        // Grand total VND
+        BigDecimal totalAmountVnd = totalCnyInVnd.add(serviceFeeVnd).add(internationalShippingFeeVnd)
+                .setScale(0, RoundingMode.HALF_UP);
+
+        // Calculate deposit (70%) and final (30%)
+        BigDecimal depositAmountVnd = totalAmountVnd.multiply(feeConfig.getDepositPercent())
+                .setScale(0, RoundingMode.HALF_UP);
+        BigDecimal finalAmountVnd = totalAmountVnd.subtract(depositAmountVnd);
+
+        // Create order
+        PurchaseOrder order = new PurchaseOrder(
+                orderCode,
+                customer,
+                request.quantity(),
+                totalAmountVnd,
+                depositAmountVnd,
+                finalAmountVnd,
+                request.shippingAddress(),
+                request.customerNote()
+        );
+
+        // Link to ProductQuote (set via reflection or add setter if needed)
+        // For now, we'll save without linking - you may need to add setProductQuote method to PurchaseOrder
+        PurchaseOrder savedOrder = purchaseOrderRepository.save(order);
+
+        // Create initial order status history
+        orderStatusHistoryRepository.save(new OrderStatusHistory(
+                savedOrder,
+                OrderStatus.WAITING_DEPOSIT,
+                "Hệ thống",
+                "Đơn hàng được tạo, chờ thanh toán đặt cọc 70%"
+        ));
+
+        // Build response
+        return new CreateOrderResponse(
+                savedOrder.getId(),
+                savedOrder.getOrderCode(),
+                savedOrder.getStatus(),
+                savedOrder.getQuantity(),
+                quote.getTranslatedName(),
+                quote.getImageUrl(),
+                request.variantSelected(),
+                savedOrder.getShippingAddress(),
+                savedOrder.getCustomerNote(),
+                productPriceCny,
+                domesticShippingFeeCny,
+                serviceFeeVnd,
+                internationalShippingFeeVnd,
+                exchangeRate,
+                totalAmountVnd,
+                depositAmountVnd,
+                finalAmountVnd,
+                savedOrder.getCreatedAt()
+        );
+    }
+
+    private String generateOrderCode() {
+        return "ORD" + System.currentTimeMillis();
     }
 
     @Transactional(readOnly = true)

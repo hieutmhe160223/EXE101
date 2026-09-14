@@ -1,5 +1,7 @@
 package com.exe101.backend.controller;
 
+import com.exe101.backend.dto.CreateOrderRequest;
+import com.exe101.backend.dto.CreateOrderResponse;
 import com.exe101.backend.dto.FinalPaymentRequest;
 import com.exe101.backend.dto.OrderDetailResponse;
 import com.exe101.backend.dto.OrderSummaryResponse;
@@ -32,6 +34,12 @@ public class OrderController {
 
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
+    }
+
+    @PostMapping
+    public ResponseEntity<CreateOrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+        CreateOrderResponse response = orderService.createOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
