@@ -12,11 +12,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "product_quotes")
+@Getter
+@Setter
 public class ProductQuote extends AuditableEntity {
 
     @Id
@@ -80,6 +84,6 @@ public class ProductQuote extends AuditableEntity {
     @Column(precision = 15, scale = 2)
     private BigDecimal estimatedTotalVnd;
 
-    protected ProductQuote() {
+    public ProductQuote() {
     }
 }

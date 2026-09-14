@@ -1,6 +1,7 @@
 package com.exe101.backend.model;
 
-public enum OrderStatus {
+public enum
+OrderStatus {
     DRAFT,
     WAITING_DEPOSIT,
     DEPOSIT_PAID,

@@ -31,6 +31,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/user/addresses").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/addresses").permitAll()
                         .requestMatchers("/api/user/addresses/**").permitAll()
+                        .requestMatchers("/api/quotes/**").permitAll()      // thêm dòng này
+                        .requestMatchers("/api/admin/**").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(form -> form.disable())

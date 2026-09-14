@@ -31,7 +31,7 @@ export function RegisterPage() {
         phoneNumber: formData.phoneNumber,
         email: formData.email,
         password: formData.password,
-        confirmPassword: formData.confirmPassword,
+        // confirmPassword: formData.confirmPassword,
       });
 
       if (typeof response.data === "object") {
