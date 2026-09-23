@@ -27,6 +27,7 @@ export function LoginPage() {
 
       // 1. Lưu token dưới tên key "accessToken" đồng bộ với Interceptor trong api.ts
       localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("userId", String(data.id));
       localStorage.setItem("userEmail", data.email);
       localStorage.setItem("userFullName", data.fullName);
       localStorage.setItem("userRole", data.role);

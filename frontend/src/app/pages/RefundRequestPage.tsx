@@ -1,55 +1,87 @@
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { Upload, AlertCircle } from "lucide-react";
+import { AlertCircle, Upload } from "lucide-react";
 import { useState } from "react";
+import { useNavigate, useParams } from "react-router";
+import api from "../utils/api";
+
+function getCustomerId() {
+  return Number(localStorage.getItem("userId") || "2");
+}
 
 export function RefundRequestPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!id) return;
+
+    try {
+      setSubmitting(true);
+      await api.post(`/orders/${id}/return-requests`, {
+        customerId: getCustomerId(),
+        reason: `${reason}${description ? ` - ${description}` : ""}`,
+        evidenceUrl: evidenceUrl || null,
+      });
+      navigate(`/orders/${id}`);
+    } catch (err: any) {
+      console.error("Cannot create return request", err);
+      alert(err.response?.data?.message || err.response?.data || "Khong the gui yeu cau doi/tra.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Yêu cầu hoàn tiền / Trả hàng</h1>
+      <h1 className="text-3xl font-bold mb-8">Yeu cau doi/tra hang</h1>
 
       <Card>
-        <form className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Lý do</label>
+            <label className="block text-sm font-medium mb-2">Ly do</label>
             <select
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(event) => setReason(event.target.value)}
               className="w-full px-4 py-3 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+              required
             >
-              <option value="">Chọn lý do...</option>
-              <option value="wrong_item">Sai sản phẩm</option>
-              <option value="damaged">Hàng bị hư hỏng</option>
-              <option value="fake">Hàng giả, hàng nhái</option>
-              <option value="not_as_described">Không đúng mô tả</option>
-              <option value="other">Lý do khác</option>
+              <option value="">Chon ly do...</option>
+              <option value="Sai san pham">Sai san pham</option>
+              <option value="Hang bi hu hong">Hang bi hu hong</option>
+              <option value="Hang gia, hang nhai">Hang gia, hang nhai</option>
+              <option value="Khong dung mo ta">Khong dung mo ta</option>
+              <option value="Ly do khac">Ly do khac</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Mô tả chi tiết</label>
+            <label className="block text-sm font-medium mb-2">Mo ta chi tiet</label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(event) => setDescription(event.target.value)}
               rows={6}
-              placeholder="Vui lòng mô tả chi tiết vấn đề của bạn..."
+              placeholder="Mo ta chi tiet van de cua ban..."
               className="w-full px-4 py-3 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Ảnh / Video minh chứng</label>
-            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer">
-              <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Nhấp để tải lên hoặc kéo thả tệp vào đây
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                PNG, JPG, MP4 (tối đa 10MB)
-              </p>
+            <label className="block text-sm font-medium mb-2">Link anh / video minh chung</label>
+            <div className="relative">
+              <Upload className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <input
+                type="url"
+                value={evidenceUrl}
+                onChange={(event) => setEvidenceUrl(event.target.value)}
+                placeholder="https://..."
+                className="w-full pl-10 pr-4 py-3 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
           </div>
 
@@ -57,18 +89,14 @@ export function RefundRequestPage() {
             <div className="flex gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-amber-800">
-                <p className="font-semibold mb-1">Lưu ý</p>
-                <ul className="space-y-1 text-xs">
-                  <li>• Yêu cầu hoàn tiền sẽ được xem xét trong 24-48 giờ</li>
-                  <li>• Vui lòng cung cấp đầy đủ bằng chứng để xử lý nhanh hơn</li>
-                  <li>• Không hoàn tiền cho đơn hàng đã nhận quá 7 ngày</li>
-                </ul>
+                <p className="font-semibold mb-1">Luu y</p>
+                <p className="text-xs">Yeu cau doi/tra se duoc ghi nhan va xu ly boi bo phan ho tro.</p>
               </div>
             </div>
           </div>
 
-          <Button type="submit" size="lg" className="w-full">
-            Gửi yêu cầu
+          <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+            {submitting ? "Dang gui..." : "Gui yeu cau"}
           </Button>
         </form>
       </Card>
