@@ -1,3 +1,5 @@
+INSERT IGNORE INTO product_quotes (id, marketplace, source_url, original_name, translated_name, image_url, shop_name, shop_level, shop_rating, product_price_cny, domestic_shipping_fee_cny, service_fee_vnd, international_shipping_fee_vnd, exchange_rate, estimated_total_vnd, created_at, updated_at)
+VALUES (1, 'XIANYU', 'https://2.taobao.com/item.htm?id=666777888', '潮流T恤', 'Áo thun nam nữ unisex mùa hè', 'https://img.alicdn.com/sample.jpg', 'Thoi Trang Store', 'L7', 4.8, 89.00, 10.00, 4500, 25000, 3500, 412775, NOW(), NOW());
 INSERT INTO user_accounts (
     email,
     password_hash,

@@ -2,9 +2,30 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { MapPin, Package, CreditCard, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import api from "../utils/api";
+
+interface SystemSettings {
+  exchangeRate: number;
+  serviceFeeMinPercent: number;
+  domesticShippingCny: number;
+  internationalShippingVnd: number;
+}
 
 export function OrderConfirmationPage() {
   const navigate = useNavigate();
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
+
+  useEffect(() => {
+    api.get<SystemSettings>("/settings").then((response) => setSettings(response.data)).catch(() => undefined);
+  }, []);
+
+  const exchangeRate = settings?.exchangeRate ?? 3650;
+  const domesticShipping = settings?.domesticShippingCny ?? 10;
+  const serviceFeePercent = settings?.serviceFeeMinPercent ?? 5;
+  const internationalShipping = settings?.internationalShippingVnd ?? 25000;
+  const totalCny = 89 + domesticShipping + (89 * serviceFeePercent / 100);
+  const totalAmount = Math.round(totalCny * exchangeRate + internationalShipping + 10000);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -67,15 +88,15 @@ export function OrderConfirmationPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Phí vận chuyển nội địa TQ</span>
-              <span>¥10</span>
+              <span>¥{domesticShipping}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Phí dịch vụ (5%)</span>
-              <span>¥4.5</span>
+                <span className="text-muted-foreground">Phí dịch vụ ({serviceFeePercent}%)</span>
+              <span>¥{(89 * serviceFeePercent / 100).toFixed(1)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Phí vận chuyển quốc tế</span>
-              <span>25,000₫</span>
+              <span>{internationalShipping.toLocaleString("vi-VN")}₫</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Bảo hiểm</span>
@@ -83,7 +104,7 @@ export function OrderConfirmationPage() {
             </div>
             <div className="border-t pt-3 flex justify-between items-center">
               <span className="font-semibold text-lg">Tổng cộng</span>
-              <span className="text-2xl font-bold text-primary">412,775₫</span>
+              <span className="text-2xl font-bold text-primary">{totalAmount.toLocaleString("vi-VN")}₫</span>
             </div>
           </div>
         </Card>
@@ -96,7 +117,7 @@ export function OrderConfirmationPage() {
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-sm text-muted-foreground">Đặt cọc:</span>
-            <span className="text-2xl font-bold text-primary">288,943₫</span>
+            <span className="text-2xl font-bold text-primary">{Math.round(totalAmount * 0.7).toLocaleString("vi-VN")}₫</span>
             <span className="text-sm text-muted-foreground">(70%)</span>
           </div>
         </Card>

@@ -14,7 +14,7 @@ export function Layout() {
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       setIsLoggedIn(!!token);
 
       const fullName = localStorage.getItem("userFullName") || "Tài khoản";

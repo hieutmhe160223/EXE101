@@ -2,6 +2,12 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Heart } from "lucide-react";
 import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import api from "../utils/api";
+
+interface SystemSettings {
+  exchangeRate: number;
+}
 
 export function WishlistPage() {
   const wishlistItems: Array<{

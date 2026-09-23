@@ -1,8 +1,11 @@
 package com.exe101.backend.controller;
 
+import com.exe101.backend.dto.ForgotPasswordRequest;
 import com.exe101.backend.dto.LoginRequest;
 import com.exe101.backend.dto.LoginResponse;
 import com.exe101.backend.dto.RegisterRequest;
+import com.exe101.backend.dto.ResetPasswordRequest;
+import com.exe101.backend.dto.VerifyOtpRequest;
 import com.exe101.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +34,23 @@ public class AuthController {
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
         return ResponseEntity.ok("Đăng ký tài khoản thành công!");
+    }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.sendForgotPasswordOtp(request);
+        return ResponseEntity.ok("Mã OTP đặt lại mật khẩu đã được gửi đến email của bạn.");
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<String> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        authService.verifyOtp(request);
+        return ResponseEntity.ok("Xác thực mã OTP thành công. Bạn có thể tiến hành đổi mật khẩu mới.");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok("Mật khẩu của bạn đã được cập nhật thành công!");
     }
 }
 

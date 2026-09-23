@@ -3,11 +3,26 @@ import { Card } from "../components/Card";
 import { Heart, ShoppingCart, Star, Shield, TrendingUp, ChevronLeft, MessageCircle, Package } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
+import { useEffect } from "react";
+import api from "../utils/api";
+
+interface SystemSettings {
+  exchangeRate: number;
+  serviceFeeMinPercent: number;
+  serviceFeeMaxPercent: number;
+  domesticShippingCny: number;
+  internationalShippingVnd: number;
+}
 
 export function ProductDetailPage() {
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState("红色-M");
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
+
+  useEffect(() => {
+    api.get<SystemSettings>("/settings").then((response) => setSettings(response.data)).catch(() => undefined);
+  }, []);
 
   const product = {
     images: [
@@ -27,17 +42,21 @@ export function ProductDetailPage() {
     variants: ["红色-M", "红色-L", "蓝色-M", "蓝色-L", "黑色-M", "黑色-L"],
   };
 
+  const exchangeRate = settings?.exchangeRate ?? 3650;
+  const domesticShipping = settings?.domesticShippingCny ?? 10;
+  const serviceFeePercent = settings?.serviceFeeMinPercent ?? 5;
+  const internationalShipping = settings?.internationalShippingVnd ?? 25000;
   const costBreakdown = [
     { label: "Giá sản phẩm", value: product.price * quantity, currency: "¥" },
-    { label: "Phí vận chuyển nội địa TQ", value: 10, currency: "¥" },
-    { label: "Phí dịch vụ (5%)", value: (product.price * quantity * 0.05), currency: "¥" },
-    { label: "Phí vận chuyển quốc tế", value: 25000, currency: "₫" },
+    { label: "Phí vận chuyển nội địa TQ", value: domesticShipping, currency: "¥" },
+    { label: `Phí dịch vụ (${serviceFeePercent}%)`, value: (product.price * quantity * serviceFeePercent / 100), currency: "¥" },
+    { label: "Phí vận chuyển quốc tế", value: internationalShipping, currency: "₫" },
     { label: "Bảo hiểm", value: 10000, currency: "₫" },
   ];
 
   const totalCNY = costBreakdown.filter(c => c.currency === "¥").reduce((sum, c) => sum + c.value, 0);
   const totalVND = costBreakdown.filter(c => c.currency === "₫").reduce((sum, c) => sum + c.value, 0);
-  const grandTotal = Math.round(totalCNY * 3650 + totalVND);
+  const grandTotal = Math.round(totalCNY * exchangeRate + totalVND);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -85,7 +104,7 @@ export function ProductDetailPage() {
           <Card className="mb-6">
             <div className="flex items-baseline gap-2 mb-1">
               <span className="text-3xl font-bold text-primary">¥{product.price}</span>
-              <span className="text-lg text-muted-foreground">≈ {(product.price * 3650).toLocaleString()}₫</span>
+              <span className="text-lg text-muted-foreground">≈ {(product.price * exchangeRate).toLocaleString()}₫</span>
             </div>
             <p className="text-sm text-muted-foreground">Giá chưa bao gồm phí dịch vụ và vận chuyển</p>
           </Card>

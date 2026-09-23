@@ -12,7 +12,8 @@ export const Header: React.FC = () => {
 
   React.useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem("token");
+      // Sửa key từ "token" -> "accessToken"
+      const token = localStorage.getItem("accessToken");
       setIsLoggedIn(!!token);
 
       const fullName = localStorage.getItem("userFullName") || "Tài khoản";
@@ -72,7 +73,6 @@ export const Header: React.FC = () => {
           {/* Right Actions */}
           <div className="flex items-center space-x-4">
             {isLoggedIn ? (
-              
               <>
                 <button onClick={() => navigate('/wishlist')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors relative">
                   <Heart className="w-6 h-6" />
@@ -107,7 +107,6 @@ export const Header: React.FC = () => {
                 </div>
               </>
             ) : (
-              
               <div className="hidden md:flex items-center space-x-3">
                 <button 
                   onClick={() => navigate('/login')} 

@@ -45,4 +45,20 @@ public class ServiceFeeConfig extends AuditableEntity {
     public String getFeeCode() {
         return feeCode;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public BigDecimal getValue() {
+        return value;
+    }
+
+    public Boolean getPercentage() {
+        return percentage;
+    }
+
+    public void updateValue(BigDecimal value) {
+        this.value = value;
+    }
 }

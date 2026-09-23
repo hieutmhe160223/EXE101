@@ -1,6 +1,8 @@
 import { Link } from "react-router";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { useEffect, useState } from "react";
+import api from "../utils/api";
 import {
   Search,
   Shield,
@@ -12,12 +14,28 @@ import {
   MessageSquare,
 } from "lucide-react";
 
+interface SystemSettings {
+  exchangeRate: number;
+  serviceFeeMinPercent: number;
+  serviceFeeMaxPercent: number;
+}
+
 export function HomePage() {
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
+
+  useEffect(() => {
+    api.get<SystemSettings>("/settings").then((response) => setSettings(response.data)).catch(() => undefined);
+  }, []);
+
+  const exchangeRate = settings?.exchangeRate ?? 3650;
+  const serviceFeeMin = settings?.serviceFeeMinPercent ?? 5;
+  const serviceFeeMax = settings?.serviceFeeMaxPercent ?? 8;
+
   const benefits = [
     {
       icon: TrendingDown,
       title: "Phí dịch vụ thấp nhất",
-      description: "Chỉ từ 5% - tiết kiệm chi phí tối đa",
+      description: `Chỉ từ ${serviceFeeMin}% - tiết kiệm chi phí tối đa`,
     },
     {
       icon: Shield,
@@ -79,7 +97,7 @@ export function HomePage() {
     },
     {
       question: "Phí dịch vụ được tính như thế nào?",
-      answer: "Phí dịch vụ = 5-8% giá trị đơn hàng, tùy theo loại sản phẩm.",
+      answer: `Phí dịch vụ = ${serviceFeeMin}-${serviceFeeMax}% giá trị đơn hàng, tùy theo loại sản phẩm.`,
     },
     {
       question: "Thời gian giao hàng bao lâu?",
@@ -143,13 +161,13 @@ export function HomePage() {
                     <span className="text-xs bg-accent text-white px-2 py-1 rounded">Live</span>
                   </div>
                   <div className="text-3xl font-bold text-primary">
-                    1 ¥ = 3,650 đ
+                    1 ¥ = {exchangeRate.toLocaleString("vi-VN")} đ
                   </div>
                 </Card>
 
                 <div className="grid grid-cols-3 gap-3">
                   <Card className="text-center">
-                    <div className="text-2xl font-bold text-primary">5%</div>
+                    <div className="text-2xl font-bold text-primary">{serviceFeeMin}%</div>
                     <div className="text-xs text-muted-foreground mt-1">Phí dịch vụ</div>
                   </Card>
                   <Card className="text-center">

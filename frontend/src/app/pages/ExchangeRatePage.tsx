@@ -1,8 +1,20 @@
 import { Card } from "../components/Card";
 import { TrendingUp, TrendingDown, Clock } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useEffect, useState } from "react";
+import api from "../utils/api";
+
+interface SystemSettings {
+  exchangeRate: number;
+  serviceFeeMinPercent: number;
+  serviceFeeMaxPercent: number;
+  domesticShippingCny: number;
+  internationalShippingVnd: number;
+  updatedAt: string;
+}
 
 export function ExchangeRatePage() {
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
   const historyData = [
     { date: "10/06", rate: 3620 },
     { date: "11/06", rate: 3630 },
@@ -12,6 +24,13 @@ export function ExchangeRatePage() {
     { date: "15/06", rate: 3650 },
     { date: "16/06", rate: 3650 },
   ];
+
+  useEffect(() => {
+    api.get<SystemSettings>("/settings").then((response) => setSettings(response.data)).catch(() => undefined);
+  }, []);
+
+  const exchangeRate = settings?.exchangeRate ?? 3650;
+  const serviceRange = settings ? `${settings.serviceFeeMinPercent}-${settings.serviceFeeMaxPercent}%` : "5-8%";
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -26,7 +45,7 @@ export function ExchangeRatePage() {
               Live
             </div>
           </div>
-          <div className="text-4xl font-bold mb-2">3,650 ₫</div>
+          <div className="text-4xl font-bold mb-2">{exchangeRate.toLocaleString("vi-VN")} ₫</div>
           <div className="text-sm opacity-90">1 ¥ (CNY)</div>
           <div className="flex items-center gap-2 mt-4 text-sm">
             <TrendingUp className="w-4 h-4" />
@@ -39,15 +58,15 @@ export function ExchangeRatePage() {
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Phí order</span>
-              <span className="font-semibold text-primary">5-8%</span>
+              <span className="font-semibold text-primary">{serviceRange}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Phí vận chuyển nội địa</span>
-              <span className="font-semibold">~¥10</span>
+              <span className="font-semibold">~¥{settings?.domesticShippingCny ?? 10}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Phí ship quốc tế</span>
-              <span className="font-semibold">~25,000₫/kg</span>
+              <span className="font-semibold">~{(settings?.internationalShippingVnd ?? 25000).toLocaleString("vi-VN")}₫/kg</span>
             </div>
           </div>
         </Card>
@@ -55,7 +74,7 @@ export function ExchangeRatePage() {
         <Card>
           <h3 className="font-semibold mb-4">Cập nhật</h3>
           <div className="text-sm text-muted-foreground space-y-2">
-            <p>Lần cuối: 16/06/2026 10:30</p>
+            <p>Lần cuối: {settings?.updatedAt ? new Date(settings.updatedAt).toLocaleString("vi-VN") : "Đang tải"}</p>
             <p>Nguồn: Vietcombank</p>
             <p>Cập nhật mỗi 30 phút</p>
           </div>
@@ -79,7 +98,7 @@ export function ExchangeRatePage() {
         <h2 className="text-xl font-semibold mb-4">Giải thích phí dịch vụ</h2>
         <div className="space-y-4">
           <div>
-            <h3 className="font-semibold mb-2">Phí dịch vụ (5-8%)</h3>
+            <h3 className="font-semibold mb-2">Phí dịch vụ ({serviceRange})</h3>
             <p className="text-sm text-muted-foreground">
               Bao gồm chi phí mua hàng, kiểm tra, đóng gói và vận hành hệ thống. Tỷ lệ phụ thuộc vào loại sản phẩm và giá trị đơn hàng.
             </p>
@@ -87,13 +106,13 @@ export function ExchangeRatePage() {
           <div>
             <h3 className="font-semibold mb-2">Phí vận chuyển nội địa TQ</h3>
             <p className="text-sm text-muted-foreground">
-              Chi phí vận chuyển từ người bán đến kho Trung Quốc của Yufiz. Trung bình ¥10-20/đơn hàng.
+              Chi phí vận chuyển từ người bán đến kho Trung Quốc của Yufiz. Hiện tại khoảng ¥{settings?.domesticShippingCny ?? 10}/đơn hàng.
             </p>
           </div>
           <div>
             <h3 className="font-semibold mb-2">Phí vận chuyển quốc tế</h3>
             <p className="text-sm text-muted-foreground">
-              Tính theo trọng lượng thực tế. Trung bình 25,000₫/kg cho hàng thường, cao hơn cho hàng cồng kềnh.
+              Tính theo trọng lượng thực tế. Hiện tại khoảng {(settings?.internationalShippingVnd ?? 25000).toLocaleString("vi-VN")}₫/kg cho hàng thường.
             </p>
           </div>
         </div>

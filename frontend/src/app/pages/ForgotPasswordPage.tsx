@@ -1,11 +1,17 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { ShoppingCart, Mail, Lock, ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import api from "../utils/api"; 
 
 export function ForgotPasswordPage() {
+  const navigate = useNavigate();
   const [step, setStep] = useState<"email" | "otp" | "password">("email");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     email: "",
     otp: "",
@@ -13,14 +19,58 @@ export function ForgotPasswordPage() {
     confirmPassword: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step === "email") {
-      setStep("otp");
-    } else if (step === "otp") {
-      setStep("password");
-    } else {
-      console.log("Reset password:", formData);
+    setError(null);
+    setMessage(null);
+    setLoading(true);
+
+    try {
+      if (step === "email") {
+        await api.post("/auth/forgot-password", { 
+          email: formData.email 
+        });
+        setMessage("Mã OTP đã được gửi về hòm thư của bạn.");
+        setStep("otp");
+      } else if (step === "otp") {
+        await api.post("/auth/verify-otp", {
+          email: formData.email,
+          otp: formData.otp,
+        });
+        setMessage("Xác thực OTP thành công. Vui lòng nhập mật khẩu mới.");
+        setStep("password");
+      } else {
+        if (formData.newPassword !== formData.confirmPassword) {
+          setError("Mật khẩu xác nhận không trùng khớp!");
+          setLoading(false);
+          return;
+        }
+
+        await api.post("/auth/reset-password", {
+          email: formData.email,
+          otp: formData.otp,
+          newPassword: formData.newPassword,
+        });
+
+        alert("Đổi mật khẩu thành công! Bạn sẽ được chuyển hướng về trang đăng nhập.");
+        navigate("/login");
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.response?.data || "Đã xảy ra lỗi hệ thống. Vui lòng thử lại!";
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError(null);
+    setMessage(null);
+    try {
+      await api.post("/auth/forgot-password", { email: formData.email });
+      setMessage("Một mã OTP mới đã được gửi lại vào email của bạn.");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Không thể gửi lại mã OTP.");
     }
   };
 
@@ -42,6 +92,20 @@ export function ForgotPasswordPage() {
         </div>
 
         <Card>
+          {/* Hiển thị Alert báo lỗi hệ thống */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded-xl border border-red-200">
+              {error}
+            </div>
+          )}
+
+          {/* Hiển thị Alert thông báo thành công */}
+          {message && (
+            <div className="mb-4 p-3 bg-green-100 text-green-700 text-sm rounded-xl border border-green-200">
+              {message}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {step === "email" && (
               <div>
@@ -57,6 +121,7 @@ export function ForgotPasswordPage() {
                     placeholder="email@example.com"
                     className="w-full pl-10 pr-4 py-3 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -75,10 +140,16 @@ export function ForgotPasswordPage() {
                   className="w-full px-4 py-3 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary text-center text-2xl tracking-widest"
                   maxLength={6}
                   required
+                  disabled={loading}
                 />
                 <p className="text-sm text-muted-foreground mt-2 text-center">
                   Chưa nhận được mã?{" "}
-                  <button type="button" className="text-primary hover:underline">
+                  <button 
+                    type="button" 
+                    onClick={handleResendOtp}
+                    className="text-primary hover:underline font-medium"
+                    disabled={loading}
+                  >
                     Gửi lại
                   </button>
                 </p>
@@ -100,6 +171,7 @@ export function ForgotPasswordPage() {
                       placeholder="••••••••"
                       className="w-full pl-10 pr-4 py-3 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                       required
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -119,16 +191,21 @@ export function ForgotPasswordPage() {
                       placeholder="••••••••"
                       className="w-full pl-10 pr-4 py-3 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                       required
+                      disabled={loading}
                     />
                   </div>
                 </div>
               </>
             )}
 
-            <Button type="submit" className="w-full" size="lg">
-              {step === "email" && "Gửi mã OTP"}
-              {step === "otp" && "Xác thực"}
-              {step === "password" && "Đặt lại mật khẩu"}
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? "Đang xử lý..." : (
+                <>
+                  {step === "email" && "Gửi mã OTP"}
+                  {step === "otp" && "Xác thực"}
+                  {step === "password" && "Đặt lại mật khẩu"}
+                </>
+              )}
             </Button>
           </form>
 

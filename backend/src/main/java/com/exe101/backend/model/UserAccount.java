@@ -10,7 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 @Entity
 @Table(name = "user_accounts")
@@ -29,8 +28,9 @@ public class UserAccount extends AuditableEntity {
     @Column(nullable = false, length = 150)
     private String fullName;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String role;
+    private Role role; // Đã đổi từ String sang Role
 
     @Column(length = 20)
     private String phoneNumber;
@@ -60,7 +60,8 @@ public class UserAccount extends AuditableEntity {
     protected UserAccount() {
     }
 
-    public UserAccount(String email, String passwordHash, String fullName, String role) {
+    // Constructor đã cập nhật kiểu dữ liệu Role
+    public UserAccount(String email, String passwordHash, String fullName, Role role) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.fullName = fullName;
@@ -82,23 +83,31 @@ public class UserAccount extends AuditableEntity {
     public String getFullName() {
         return fullName;
     }
-    public void setFullName(String fullName) {
-    this.fullName = fullName;
-}
 
-    public String getRole() {
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    // Getter trả về kiểu Role
+    public Role getRole() {
         return role;
+    }
+
+    // Setter bổ sung cho Role
+    public void setRole(Role role) {
+        this.role = role;
     }
 
     public String getPhoneNumber() {
         return phoneNumber;
     }
+
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
 
     public String getDateOfBirth() {
-    return dateOfBirth;
+        return dateOfBirth;
     }   
 
     public void setDateOfBirth(String dateOfBirth) {
@@ -127,6 +136,10 @@ public class UserAccount extends AuditableEntity {
 
     public AccountStatus getStatus() {
         return status;
+    }
+
+    public void setStatus(AccountStatus status) {
+        this.status = status;
     }
 
     public void setPasswordHash(String passwordHash) {
