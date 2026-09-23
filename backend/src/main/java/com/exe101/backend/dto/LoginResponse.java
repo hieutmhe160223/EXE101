@@ -1,11 +1,13 @@
 package com.exe101.backend.dto;
 
+import com.exe101.backend.model.Role;
+
 public record LoginResponse(
         String accessToken,
         String tokenType,
         String email,
         String fullName,
-        String role,
+        Role role,
         String phoneNumber,
         String dob
 ) {

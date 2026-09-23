@@ -16,5 +16,27 @@ spring:
     console:
       enabled: false
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: "yufiz.system@gmail.com"
+    password: "grqhmqcqcofweukx"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            
 server:
   port: 8080
+
+app:
+  exchange-rate:
+    refresh-ms: 1800000
+    initial-delay-ms: 10000

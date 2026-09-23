@@ -1,10 +1,20 @@
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Search, Link as LinkIcon, Clock, TrendingUp } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import api from "../utils/api";
+
+interface SystemSettings {
+  exchangeRate: number;
+}
 
 export function ProductLinkInputPage() {
+  const [exchangeRate, setExchangeRate] = useState(3650);
+
+  useEffect(() => {
+    api.get<SystemSettings>("/settings").then((response) => setExchangeRate(response.data.exchangeRate)).catch(() => undefined);
+  }, []);
   const [url, setUrl] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const navigate = useNavigate();
@@ -86,7 +96,7 @@ export function ProductLinkInputPage() {
             <div>
               <h3 className="font-semibold mb-2">Tỷ giá hôm nay</h3>
               <div className="text-2xl font-bold text-primary mb-1">
-                1 ¥ = 3,650 đ
+                1 ¥ = {exchangeRate.toLocaleString("vi-VN")} đ
               </div>
               <p className="text-sm text-muted-foreground">
                 Cập nhật: 16/06/2026 10:30

@@ -2,8 +2,20 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Trash2, ShoppingCart, Heart } from "lucide-react";
 import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import api from "../utils/api";
+
+interface SystemSettings {
+  exchangeRate: number;
+}
 
 export function WishlistPage() {
+  const [exchangeRate, setExchangeRate] = useState(3650);
+
+  useEffect(() => {
+    api.get<SystemSettings>("/settings").then((response) => setExchangeRate(response.data.exchangeRate)).catch(() => undefined);
+  }, []);
+
   const wishlistItems = [
     {
       id: 1,
@@ -56,7 +68,7 @@ export function WishlistPage() {
               <div className="flex items-baseline gap-2 mb-4">
                 <span className="text-xl font-bold text-primary">¥{item.price}</span>
                 <span className="text-sm text-muted-foreground">
-                  ≈ {(item.price * 3650).toLocaleString()}₫
+                  ≈ {(item.price * exchangeRate).toLocaleString()}₫
                 </span>
               </div>
               <div className="flex gap-2">

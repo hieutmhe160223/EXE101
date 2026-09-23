@@ -37,4 +37,12 @@ public class ExchangeRateConfig extends AuditableEntity {
     public String getCurrencyPair() {
         return currencyPair;
     }
+
+    public BigDecimal getRate() {
+        return rate;
+    }
+
+    public void updateRate(BigDecimal rate) {
+        this.rate = rate;
+    }
 }

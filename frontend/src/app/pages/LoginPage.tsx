@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router"; // Thêm useNavigate ở đây
+import { Link, useNavigate } from "react-router";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { ShoppingCart, Mail, Lock } from "lucide-react";
@@ -25,19 +25,29 @@ export function LoginPage() {
 
       const data = response.data; 
 
-      localStorage.setItem("token", data.accessToken);
+      // 1. Lưu token dưới tên key "accessToken" đồng bộ với Interceptor trong api.ts
+      localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("userEmail", data.email);
       localStorage.setItem("userFullName", data.fullName);
       localStorage.setItem("userRole", data.role);
-      localStorage.setItem("userPhone", data.phoneNumber);
+      
+      if (data.phoneNumber) {
+        localStorage.setItem("userPhone", data.phoneNumber);
+      }
       if (data.dob) {
         localStorage.setItem("userDob", data.dob);
       }
 
+      // Thông báo các component khác (VD: Header, Navbar) cập nhật lại trạng thái đăng nhập
       window.dispatchEvent(new Event("authChange"));
       alert(`Chào mừng quay trở lại, ${data.fullName}!`);
 
-      navigate("/");
+      // 2. Điều hướng thông minh dựa vào Role nhận từ Backend
+      if (data.role === "ADMIN") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
       
     } catch (error: any) {
       console.error("Lỗi đăng nhập:", error);

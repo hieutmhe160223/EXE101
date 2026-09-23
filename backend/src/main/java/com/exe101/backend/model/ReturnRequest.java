@@ -80,4 +80,9 @@ public class ReturnRequest extends AuditableEntity {
     public String getAdminNote() {
         return adminNote;
     }
+
+    public void updateStatus(ReturnRequestStatus status, String adminNote) {
+        this.status = status;
+        this.adminNote = adminNote;
+    }
 }
