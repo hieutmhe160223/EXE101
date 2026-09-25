@@ -1,141 +1,36 @@
-import { Button } from "../components/Button";
+import { useState } from "react";
+import api from "../utils/api";
+import { Link, useParams } from "react-router";
 import { Card } from "../components/Card";
-import { Package, MapPin, CreditCard, MessageCircle, AlertCircle } from "lucide-react";
-import { Link } from "react-router";
-
+import { Button } from "../components/Button";
+import { CostSummary } from "../components/CostSummary";
+import { useOrder } from "../utils/useOrder";
+import { money, orderStatus, Price, errorMessage } from "../utils/commerce";
 export function OrderDetailPage() {
-  const order = {
-    id: "YF20260616001",
-    status: "shipping",
-    timeline: [
-      { status: "Đã đặt hàng", date: "2026-06-10 10:30", completed: true },
-      { status: "Người bán giao hàng", date: "2026-06-11 15:20", completed: true },
-      { status: "Về kho Trung Quốc", date: "2026-06-13 09:15", completed: true },
-      { status: "Vận chuyển quốc tế", date: "2026-06-14 14:00", completed: true },
-      { status: "Về kho Việt Nam", date: "", completed: false },
-      { status: "Đã giao hàng", date: "", completed: false },
-    ],
-  };
-
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Đơn hàng {order.id}</h1>
-          <p className="text-muted-foreground">Đang vận chuyển quốc tế</p>
-        </div>
-        <Link to="/chat">
-          <Button variant="outline">
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Hỗ trợ
-          </Button>
-        </Link>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Timeline */}
-          <Card>
-            <h2 className="text-xl font-semibold mb-6">Trạng thái đơn hàng</h2>
-            <div className="space-y-4">
-              {order.timeline.map((item, index) => (
-                <div key={index} className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      item.completed ? "bg-accent text-white" : "bg-muted text-muted-foreground"
-                    }`}>
-                      {item.completed ? "✓" : index + 1}
-                    </div>
-                    {index < order.timeline.length - 1 && (
-                      <div className={`w-0.5 h-12 ${item.completed ? "bg-accent" : "bg-muted"}`} />
-                    )}
-                  </div>
-                  <div className="flex-1 pb-8">
-                    <div className={`font-medium ${item.completed ? "text-foreground" : "text-muted-foreground"}`}>
-                      {item.status}
-                    </div>
-                    {item.date && (
-                      <div className="text-sm text-muted-foreground">{item.date}</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Product Info */}
-          <Card>
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
-              <Package className="w-5 h-5" />
-              Thông tin sản phẩm
-            </h2>
-            <div className="flex gap-4">
-              <div className="w-24 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                <img
-                  src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200"
-                  alt="Product"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-1">Áo thun nam nữ unisex mùa hè</h3>
-                <p className="text-sm text-muted-foreground mb-2">夏季新款潮流T恤</p>
-                <div className="text-sm text-muted-foreground">Phân loại: 红色-M</div>
-                <div className="text-sm text-muted-foreground">Số lượng: 1</div>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          {/* Cost Summary */}
-          <Card>
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
-              <CreditCard className="w-5 h-5" />
-              Chi phí
-            </h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tổng đơn hàng</span>
-                <span>412,775₫</span>
-              </div>
-              <div className="flex justify-between text-accent">
-                <span>Đã thanh toán (70%)</span>
-                <span>288,943₫</span>
-              </div>
-              <div className="flex justify-between font-semibold">
-                <span>Còn lại</span>
-                <span className="text-primary">123,832₫</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Shipping Address */}
-          <Card>
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
-              <MapPin className="w-5 h-5" />
-              Địa chỉ giao hàng
-            </h2>
-            <div className="text-sm">
-              <div className="font-semibold">Nguyễn Văn A</div>
-              <div className="text-muted-foreground">0912345678</div>
-              <div className="text-muted-foreground mt-1">
-                123 Đường ABC, Phường XYZ, Quận 1, TP. Hồ Chí Minh
-              </div>
-            </div>
-          </Card>
-
-          {/* Actions */}
-          <div className="space-y-2">
-            <Link to={`/orders/${order.id}/refund`}>
-              <Button variant="outline" className="w-full">
-                <AlertCircle className="w-4 h-4 mr-2" />
-                Yêu cầu hoàn tiền
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const { id } = useParams(); const { order, error, refresh } = useOrder(id);
+  const [actionError,setActionError]=useState(""); const [busy,setBusy]=useState(false);
+  const cancel=async()=>{setBusy(true);setActionError("");try{await api.post(`/orders/${id}/cancel`);await refresh();}catch(e){setActionError(errorMessage(e));}finally{setBusy(false);}};
+  if(error) return <p role="alert" className="p-8">{error}</p>;
+  if(!order) return <p className="p-8">Đang tải đơn...</p>;
+  let price: Price | null = null;
+  try { if(order.costSnapshotJson) price = JSON.parse(order.costSnapshotJson); } catch {}
+  return <div className="max-w-5xl mx-auto px-4 py-8">
+    <Link to="/orders" className="text-primary">← Đơn hàng của tôi</Link><h1 className="text-2xl font-bold my-4">Đơn {order.orderCode}</h1>
+    <p className="mb-6">{orderStatus(order.status)}</p>{actionError && <p role="alert" className="text-red-700 mb-4">{actionError}</p>}
+    <div className="grid md:grid-cols-2 gap-6"><div className="space-y-5">
+      <Card>{order.productImageUrl && <img src={order.productImageUrl} alt="" className="w-28 h-28 object-cover rounded-lg mb-3" />}
+        <h2 className="font-semibold">{order.productName || "Đơn cũ chưa lưu tên sản phẩm"}</h2><p>Số lượng: {order.quantity}</p>{order.variantSelected && <p>Phân loại: {order.variantSelected}</p>}
+        <p className="mt-3">Giao đến: {order.shippingAddress}</p>{order.customerNote && <p>Ghi chú: {order.customerNote}</p>}
+      </Card>
+      <Card><h2 className="font-semibold mb-3">Tiến trình</h2>{order.status === "WAITING_DEPOSIT" && <p>Chờ thanh toán tiền cọc</p>}
+        {order.timeline?.map(item => <div key={item.status} className={`py-2 ${item.reached ? "" : "text-muted-foreground"}`}><p>{item.reached ? "✓ " : "○ "}{orderStatus(item.status)}</p>{item.reached && <><small>{item.location}</small><p className="text-sm whitespace-pre-wrap">{item.note}</p></>}</div>)}
+      </Card>
+    </div><div className="space-y-5"><Card>{price ? <CostSummary price={price} /> : <p>Tổng: {money(order.totalAmountVnd)}</p>}
+      <p className="mt-4 font-semibold">Đã xác nhận thanh toán: {money(order.paidAmountVnd)}</p></Card>
+      {order.status === "WAITING_DEPOSIT" && <Link to={`/order/payment?orderId=${order.id}`}><Button className="w-full">Thanh toán tiền cọc</Button></Link>}
+      {order.status === "WAITING_FINAL_PAYMENT" && <Link to={`/orders/${order.id}/final-payment`}><Button className="w-full">Thanh toán còn lại · {money(Math.max(0,order.totalAmountVnd-order.paidAmountVnd))}</Button></Link>}
+      {["FINAL_PAID","DELIVERING","COMPLETED"].includes(order.status) && <Link to={`/orders/${order.id}/refund`}><Button variant="outline">Yêu cầu đổi trả</Button></Link>}
+    {order.status === "WAITING_DEPOSIT" && <div className="mt-4"><Button variant="outline" disabled={busy} onClick={cancel}>Hủy đơn chưa tạo thanh toán</Button></div>}
+    </div></div>
+  </div>;
 }

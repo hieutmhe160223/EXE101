@@ -12,10 +12,13 @@ import java.time.temporal.ChronoUnit;
 @Service
 public class ExchangeRateService {
 
-    @Value("${exchange-rate.api-url}") private String apiUrl;
-    @Value("${exchange-rate.cache-ttl-minutes}") private long ttlMinutes;
+    @Value("${exchange-rate.api-url:https://open.er-api.com/v6/latest/CNY}") private String apiUrl;
+    @Value("${exchange-rate.cache-ttl-minutes:60}") private long ttlMinutes;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = new org.springframework.boot.web.client.RestTemplateBuilder()
+            .setConnectTimeout(java.time.Duration.ofSeconds(5)).setReadTimeout(java.time.Duration.ofSeconds(10)).build();
+
+    public Instant getFetchedAt() { return cachedAt; }
     private BigDecimal cachedRate;
     private Instant cachedAt = Instant.EPOCH;
 

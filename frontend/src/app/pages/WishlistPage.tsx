@@ -4,7 +4,7 @@ import { Trash2, ShoppingCart, Heart, Loader2, AlertCircle } from "lucide-react"
 import { Link, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import api from "../utils/api";
-import { getCurrentUserId, isAuthenticated } from "../utils/auth";
+import { getUserId, isLoggedIn } from "../utils/auth";
 
 interface WishlistItem {
   wishlistId: number;
@@ -24,7 +24,7 @@ export function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<number | null>(null);
-  const userId = getCurrentUserId();
+  const userId = getUserId();
 
   useEffect(() => {
     // Check if user is logged in

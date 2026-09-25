@@ -1,362 +1,87 @@
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+import { Heart, ShoppingCart, Shield, Star } from "lucide-react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { Heart, ShoppingCart, Star, Shield, TrendingUp, ChevronLeft, MessageCircle, Package, Loader2, AlertCircle } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router";
-import { useState, useEffect } from "react";
+import { CostSummary } from "../components/CostSummary";
 import api from "../utils/api";
-import { getUserId } from "../utils/auth";
-import { getCurrentUserId } from "../utils/auth";
-import { getCurrentUserId } from "../utils/auth";
-
-interface ProductQuote {
-  quoteId: number;
-  nameZh: string;
-  nameVi: string;
-  descriptionVi: string;
-  images: string[];
-  priceCny: number;
-  priceVndEstimate: number;
-  seller: {
-    name: string;
-    level: string;
-    rating: number;
-    reviews: number;
-  };
-  costBreakdown: Array<{
-    label: string;
-    value: number;
-    currency: string;
-  }>;
-  totalCny: number;
-  grandTotalVnd: number;
-  depositAmountVnd: number;
-  exchangeRate: number;
-  exchangeRateUpdatedAt: string;
-}
+import { getUserId, isLoggedIn } from "../utils/auth";
+import { Quote, Price, money, errorMessage } from "../utils/commerce";
 
 export function ProductDetailPage() {
-  const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [product, setProduct] = useState<ProductQuote | null>(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Wishlist states
-  const [isInWishlist, setIsInWishlist] = useState(false);
-  const [wishlistLoading, setWishlistLoading] = useState(false);
-  const userId = getUserId();
-
+  const { id } = useParams(); const navigate = useNavigate();
+  const [product, setProduct] = useState<Quote | null>(null);
+  const [price, setPrice] = useState<Price | null>(null);
+  const [variant, setVariant] = useState("");
+  const [quantity, setQuantity] = useState(1); const [image, setImage] = useState(0);
+  const [error, setError] = useState(""); const [actionError, setActionError] = useState("");
+  const [favorite, setFavorite] = useState(false); const [saving, setSaving] = useState(false);
+  const [pricing, setPricing] = useState(true); const [similar, setSimilar] = useState<Quote[]>([]);
   useEffect(() => {
-    if (id) {
-      fetchProductDetails();
-    }
+    let active = true; setProduct(null); setError(""); setFavorite(false); setQuantity(1); setImage(0);
+    api.get<Quote>(`/quotes/${id}`).then(r => { if (active) { setProduct(r.data); setVariant(r.data.variants?.find(v => v.stock == null || v.stock > 0)?.variantId || ""); } }).catch(e => { if (active) setError(errorMessage(e)); });
+    if (isLoggedIn()) api.get(`/wishlist/check/${id}`, { params: { userId: getUserId() } }).then(r => { if (active) setFavorite(r.data); }).catch(() => {});
+    api.get<Quote[]>(`/quotes/${id}/similar-products`).then(r => { if (active) setSimilar(r.data); }).catch(() => { if (active) setSimilar([]); });
+    return () => { active = false; };
   }, [id]);
-
   useEffect(() => {
-    if (product) {
-      checkWishlistStatus();
-    }
-  }, [product]);
-
-  const checkWishlistStatus = async () => {
-    if (!product || !userId) return;
-    
+    let active = true; setPricing(true); setPrice(null);
+    api.get<Price>(`/quotes/${id}/price-preview`, { params: { quantity, variant: variant || undefined } })
+      .then(r => { if (active) { setPrice(r.data); setActionError(""); } })
+      .catch(e => { if (active) setActionError(errorMessage(e)); }).finally(() => { if (active) setPricing(false); });
+    return () => { active = false; };
+  }, [id, quantity, variant]);
+  const toggle = async () => {
+    if (!isLoggedIn()) { navigate(`/login?next=${encodeURIComponent("/product/" + id)}`); return; }
+    setSaving(true); setActionError("");
     try {
-      const response = await api.get(`/wishlist/check/${product.quoteId}?userId=${userId}`);
-      setIsInWishlist(response.data);
-    } catch (err) {
-      console.error("Failed to check wishlist status:", err);
-    }
+      if (favorite) await api.delete(`/wishlist/${id}`, { params: { userId: getUserId() } });
+      else await api.post("/wishlist", { userId: getUserId(), productQuoteId: Number(id) });
+      setFavorite(!favorite);
+    } catch (e) { setActionError(errorMessage(e)); } finally { setSaving(false); }
   };
-
-  const handleToggleWishlist = async () => {
-    if (!product || !userId) {
-      setError("Vui lòng đăng nhập để sử dụng chức năng này");
-      return;
-    }
-    
-    setWishlistLoading(true);
-    
-    try {
-      const response = await api.post("/wishlist/toggle", {
-        userId,
-        productQuoteId: product.quoteId
-      });
-      
-      setIsInWishlist(response.data.inWishlist);
-      
-      // Optional: Show toast notification
-      // toast.success(response.data.message);
-    } catch (err: any) {
-      console.error("Failed to toggle wishlist:", err);
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError("Đã có lỗi xảy ra khi cập nhật danh sách yêu thích");
-      }
-    } finally {
-      setWishlistLoading(false);
-    }
-  };
-
-  const fetchProductDetails = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await api.get(`/quotes/${id}`);
-      setProduct(response.data);
-      if (response.data.images && response.data.images.length > 0) {
-        setCurrentImageIndex(0);
-      }
-    } catch (err: any) {
-      console.error("Failed to fetch product details:", err);
-      if (err.response?.status === 404) {
-        setError("Không tìm thấy sản phẩm");
-      } else {
-        setError("Đã có lỗi xảy ra khi tải thông tin sản phẩm");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-primary" />
-          <p className="text-muted-foreground">Đang tải thông tin sản phẩm...</p>
+  if (error) return <div className="max-w-4xl mx-auto p-8"><Card><p role="alert">{error}</p><Link to="/order/new">Nhập link khác</Link></Card></div>;
+  if (!product) return <p className="p-12 text-center" role="status">Đang tải sản phẩm...</p>;
+  const expired = !product.expiresAt || new Date(product.expiresAt).getTime() <= Date.now();
+  return <div className="max-w-7xl mx-auto px-4 py-8">
+    <Link to="/order/new" className="text-primary">← Nhập link khác</Link>
+    <div className="grid lg:grid-cols-2 gap-8 my-6">
+      <div>
+        <div className="aspect-square bg-muted rounded-xl overflow-hidden">
+          {product.images[image] ? <img src={product.images[image]} alt={product.nameVi} className="w-full h-full object-contain" /> : <p className="p-8">Chưa có ảnh</p>}
         </div>
+        <div className="flex gap-2 overflow-x-auto mt-3">{product.images.map((src, i) => <button key={src} onClick={() => setImage(i)} aria-label={`Xem ảnh ${i + 1}`} className={`w-20 h-20 shrink-0 border-2 rounded-lg overflow-hidden ${i === image ? "border-primary" : "border-transparent"}`}><img src={src} alt="" className="w-full h-full object-cover" /></button>)}</div>
       </div>
-    );
-  }
-
-  if (error || !product) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <Link to="/order/new" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-6">
-          <ChevronLeft className="w-4 h-4" />
-          Quay lại
-        </Link>
+      <div className="space-y-5">
+        <h1 className="text-2xl font-bold">{product.nameVi || product.nameZh}</h1><p className="text-muted-foreground">{product.nameZh}</p>
+        <p className="text-3xl font-bold text-primary">¥{product.priceCny.toFixed(2)} <span className="text-base font-normal">≈ {money(product.priceVndEstimate)}</span></p>
         <Card>
-          <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <AlertCircle className="w-16 h-16 text-destructive" />
-            <p className="text-lg font-medium">{error || "Không tìm thấy sản phẩm"}</p>
-            <Button onClick={() => navigate("/order/new")}>
-              Quay lại trang chủ
-            </Button>
-          </div>
+          <h2 className="font-semibold">{product.seller.name}</h2>
+          <div className="flex items-center gap-2 my-2"><Shield size={18} />Uy tín: {product.seller.level === "UNKNOWN" ? "Chưa đủ dữ liệu" : product.seller.level}</div>
+          <div className="flex items-center gap-2"><Star size={18} />{product.seller.rating == null ? "Chưa có điểm" : product.seller.rating + "/5"} · {product.seller.reviews == null ? "Chưa có số đánh giá" : product.seller.reviews + " đánh giá"}</div>
+          <p className="text-xs text-muted-foreground mt-2">L1–L7 là thang điểm nội bộ từ dữ liệu nguồn; điểm sao quy đổi từ tỷ lệ đánh giá tốt. Pro theo thông tin nguồn.</p>
+        </Card>
+        {product.sourcePriceVerified === false && <p className="text-amber-800 text-sm">Giá nguồn là giá tham khảo chưa được nhà cung cấp dữ liệu xác minh; cần kiểm tra lại trước khi mua.</p>}
+        {product.variants?.length > 0 && <label className="block">Phân loại<select aria-label="Phân loại" value={variant} onChange={e => setVariant(e.target.value)} className="block w-full border rounded-lg p-3 mt-2">{product.variants.map(v => <option key={v.variantId} value={v.variantId} disabled={v.stock === 0}>{v.label} — ¥{v.priceCny}</option>)}</select></label>}
+        <label className="block">Số lượng <input aria-label="Số lượng" type="number" min={1} max={100} value={quantity} onChange={e => setQuantity(Math.min(100, Math.max(1, Number.parseInt(e.target.value) || 1)))} className="ml-4 border rounded-lg p-2 w-24" /></label>
+        {actionError && <p role="alert" className="text-red-700">{actionError}</p>}
+        {expired && <p className="text-amber-800">Báo giá đã hết hạn. Vui lòng phân tích lại link trước khi đặt hàng.</p>}
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" onClick={toggle} disabled={saving}><Heart className={`inline mr-2 ${favorite ? "fill-red-500 text-red-500" : ""}`} size={18} />{favorite ? "Đã yêu thích" : "Yêu thích"}</Button>
+          <Button disabled={pricing || !price || expired} onClick={() => navigate(`/order/confirm?quoteId=${id}&quantity=${quantity}&variant=${encodeURIComponent(variant)}`)}><ShoppingCart className="inline mr-2" size={18} />Đặt hàng ngay</Button>
+        </div>
+        <Card><h2 className="font-semibold mb-4">Chi phí cho {quantity} sản phẩm</h2>{pricing ? <p role="status">Đang tính giá...</p> : price && <CostSummary price={price} />}
+          <p className="text-xs text-muted-foreground mt-3">1 ¥ = {money(product.exchangeRate)}{product.exchangeRateUpdatedAt ? " · Cập nhật " + product.exchangeRateUpdatedAt : " · Chưa có thời điểm cập nhật"}</p>
         </Card>
       </div>
-    );
-  }
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <Link to="/order/new" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-6">
-        <ChevronLeft className="w-4 h-4" />
-        Quay lại
-      </Link>
-
-      <div className="grid lg:grid-cols-2 gap-8 mb-8">
-        {/* Product Images */}
-        <div>
-          <div className="bg-muted rounded-xl overflow-hidden mb-4 aspect-square">
-            {product.images && product.images.length > 0 ? (
-              <img
-                src={product.images[currentImageIndex]}
-                alt={product.nameVi}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                Không có hình ảnh
-              </div>
-            )}
-          </div>
-          {product.images && product.images.length > 0 && (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.map((img, i) => (
-                <div 
-                  key={i} 
-                  className={`bg-muted rounded-lg overflow-hidden aspect-square cursor-pointer hover:ring-2 ring-primary ${currentImageIndex === i ? 'ring-2' : ''}`}
-                  onClick={() => setCurrentImageIndex(i)}
-                >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Product Info */}
-        <div>
-          <h1 className="text-2xl font-bold mb-2">{product.nameVi}</h1>
-          <p className="text-muted-foreground mb-4">{product.nameZh}</p>
-
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex items-center gap-1">
-              <Star className="w-5 h-5 fill-primary text-primary" />
-              <span className="font-semibold">{product.seller.rating}</span>
-              <span className="text-muted-foreground text-sm">({product.seller.reviews} đánh giá)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-accent" />
-              <span className="text-sm font-medium text-accent">Người bán {product.seller.level}</span>
-            </div>
-          </div>
-
-          <Card className="mb-6">
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-3xl font-bold text-primary">¥{product.priceCny.toFixed(2)}</span>
-              <span className="text-lg text-muted-foreground">≈ {product.priceVndEstimate.toLocaleString()}₫</span>
-            </div>
-            <p className="text-sm text-muted-foreground">Giá chưa bao gồm phí dịch vụ và vận chuyển</p>
-          </Card>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-3">Số lượng</label>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-10 h-10 rounded-lg border border-border hover:bg-muted"
-              >
-                -
-              </button>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-20 text-center px-4 py-2 rounded-lg border border-border"
-              />
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="w-10 h-10 rounded-lg border border-border hover:bg-muted"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          <div className="flex gap-3 mb-6">
-            <Button 
-              variant="outline" 
-              className="flex-1"
-              onClick={handleToggleWishlist}
-              disabled={wishlistLoading}
-            >
-              {wishlistLoading ? (
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              ) : isInWishlist ? (
-                <Heart className="w-5 h-5 mr-2 fill-red-500 text-red-500" />
-              ) : (
-                <Heart className="w-5 h-5 mr-2" />
-              )}
-              {wishlistLoading ? "Đang xử lý..." : (isInWishlist ? "Đã yêu thích" : "Yêu thích")}
-            </Button>
-            <Button 
-              className="flex-1" 
-              onClick={() => navigate("/order/confirm", { 
-                state: { 
-                  quoteId: product.quoteId,
-                  quantity,
-                  selectedVariant 
-                } 
-              })}
-            >
-              <ShoppingCart className="w-5 h-5 mr-2" />
-              Đặt hàng ngay
-            </Button>
-          </div>
-
-          <div className="flex gap-2">
-            {/* Temporarily disabled - Similar products feature not implemented yet */}
-            {/* <Button variant="ghost" size="sm" className="flex-1">
-              <MessageCircle className="w-4 h-4 mr-2" />
-              Chat với shop
-            </Button>
-            <Button variant="ghost" size="sm" className="flex-1">
-              <Package className="w-4 h-4 mr-2" />
-              Tìm sản phẩm tương tự
-            </Button> */}
-          </div>
-        </div>
-      </div>
-
-      {/* Cost Breakdown */}
-      <Card className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Chi phí ước tính</h2>
-        <div className="space-y-3">
-          {product.costBreakdown.map((item, i) => (
-            <div key={i} className="flex justify-between items-center">
-              <span className="text-muted-foreground">{item.label}</span>
-              <span className="font-medium">
-                {item.currency === "¥" 
-                  ? `¥${item.value.toFixed(2)}` 
-                  : `${item.value.toLocaleString()}₫`}
-              </span>
-            </div>
-          ))}
-          <div className="border-t pt-3 flex justify-between items-center">
-            <span className="font-semibold text-lg">Tổng cộng</span>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-primary">{product.grandTotalVnd.toLocaleString()}₫</div>
-              <div className="text-sm text-muted-foreground">≈ ¥{product.totalCny.toFixed(2)}</div>
-            </div>
-          </div>
-        </div>
-        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-sm text-amber-800">
-            <TrendingUp className="w-4 h-4 inline mr-1" />
-            Đặt cọc 70%: <span className="font-semibold">{product.depositAmountVnd.toLocaleString()}₫</span>
-          </p>
-        </div>
-        {product.exchangeRateUpdatedAt && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Tỷ giá: 1¥ = {product.exchangeRate.toLocaleString()}₫ (Cập nhật: {product.exchangeRateUpdatedAt})
-          </p>
-        )}
-      </Card>
-
-      {/* Product Description */}
-      {product.descriptionVi && (
-        <Card className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Mô tả sản phẩm</h2>
-          <div className="text-muted-foreground whitespace-pre-wrap">
-            {product.descriptionVi}
-          </div>
-        </Card>
-      )}
-
-      {/* Seller Info */}
-      <Card>
-        <h2 className="text-xl font-semibold mb-4">Thông tin người bán</h2>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-              {product.seller.name[0]}
-            </div>
-            <div>
-              <div className="font-semibold text-lg">{product.seller.name}</div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Shield className="w-4 h-4 text-accent" />
-                Cấp độ: {product.seller.level}
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-1 mb-1">
-              <Star className="w-5 h-5 fill-primary text-primary" />
-              <span className="font-semibold text-lg">{product.seller.rating}</span>
-            </div>
-            <div className="text-sm text-muted-foreground">{product.seller.reviews} đánh giá</div>
-          </div>
-        </div>
-      </Card>
     </div>
-  );
+    <Card><h2 className="text-xl font-semibold mb-3">Mô tả sản phẩm</h2>
+      {!product.translationComplete && <p className="text-amber-800 text-sm mb-2">Bản dịch chưa hoàn tất; một phần nội dung có thể đang là bản gốc.</p>}
+      <p className="whitespace-pre-wrap">{product.descriptionVi || "Chưa có mô tả từ nguồn."}</p>
+    </Card>
+    <section className="mt-8"><h2 className="text-xl font-semibold mb-4">Sản phẩm tương tự</h2>
+      <p className="text-sm text-muted-foreground mb-3">Gợi ý từ các sản phẩm đã phân tích, dựa trên từ khóa và khoảng giá.</p>
+      {similar.length === 0 ? <p>Chưa có sản phẩm phù hợp để gợi ý.</p> : <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">{similar.map(item => <Link key={item.quoteId} to={`/product/${item.quoteId}`}><Card hover>{item.images[0] && <img className="aspect-square object-cover rounded-lg mb-3" src={item.images[0]} alt="" />}<h3>{item.nameVi}</h3><p className="text-primary">{money(item.priceVndEstimate)}</p></Card></Link>)}</div>}
+    </section>
+  </div>;
 }

@@ -1,4 +1,7 @@
-import { Link } from "react-router";
+import { useRemote } from "../components/RemoteData";
+import { money } from "../utils/commerce";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import {
@@ -13,6 +16,9 @@ import {
 } from "lucide-react";
 
 export function HomePage() {
+  const navigate = useNavigate();
+  const rate = useRemote("/quotes/exchange-rate");
+  const [productUrl, setProductUrl] = useState("");
   const benefits = [
     {
       icon: TrendingDown,
@@ -54,23 +60,7 @@ export function HomePage() {
     },
   ];
 
-  const reviews = [
-    {
-      name: "Nguyễn Văn A",
-      rating: 5,
-      comment: "Dịch vụ tuyệt vời, hàng đúng mô tả. Sẽ tiếp tục ủng hộ!",
-    },
-    {
-      name: "Trần Thị B",
-      rating: 5,
-      comment: "Phí rẻ, ship nhanh, nhân viên tư vấn nhiệt tình. Rất hài lòng!",
-    },
-    {
-      name: "Lê Văn C",
-      rating: 5,
-      comment: "Đã đặt nhiều đơn, chất lượng dịch vụ ổn định. Recommend!",
-    },
-  ];
+
 
   const faqs = [
     {
@@ -79,7 +69,7 @@ export function HomePage() {
     },
     {
       question: "Phí dịch vụ được tính như thế nào?",
-      answer: "Phí dịch vụ = 5-8% giá trị đơn hàng, tùy theo loại sản phẩm.",
+      answer: "Phí dịch vụ và các khoản vận chuyển được hiển thị trong báo giá trước khi đặt đơn.",
     },
     {
       question: "Thời gian giao hàng bao lâu?",
@@ -87,7 +77,7 @@ export function HomePage() {
     },
     {
       question: "Có được hoàn tiền nếu hàng lỗi?",
-      answer: "Có, bạn sẽ được hoàn tiền 100% nếu hàng lỗi do người bán.",
+      answer: "Bạn có thể gửi yêu cầu đổi trả trong trang đơn hàng để được xem xét.",
     },
   ];
 
@@ -111,10 +101,12 @@ export function HomePage() {
               <div className="bg-white rounded-xl shadow-lg p-2 flex gap-2 mb-6">
                 <input
                   type="text"
+                  value={productUrl}
+                  onChange={e => setProductUrl(e.target.value)}
                   placeholder="Dán link sản phẩm Taobao/Xianyu vào đây..."
                   className="flex-1 px-4 py-3 outline-none"
                 />
-                <Button size="md" className="whitespace-nowrap">
+                <Button size="md" className="whitespace-nowrap" onClick={() => navigate("/order/new?url=" + encodeURIComponent(productUrl))}>
                   <Search className="w-5 h-5 mr-2" />
                   Tìm kiếm
                 </Button>
@@ -140,27 +132,14 @@ export function HomePage() {
                 <Card className="mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Tỷ giá hôm nay</span>
-                    <span className="text-xs bg-accent text-white px-2 py-1 rounded">Live</span>
+                    <span className="text-xs bg-accent text-white px-2 py-1 rounded">CNY/VND</span>
                   </div>
                   <div className="text-3xl font-bold text-primary">
-                    1 ¥ = 3,650 đ
+                    {rate.loading ? "Đang tải tỷ giá..." : rate.error ? "Chưa tải được tỷ giá" : "1 ¥ = " + money(rate.data?.rate)}
                   </div>
                 </Card>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <Card className="text-center">
-                    <div className="text-2xl font-bold text-primary">5%</div>
-                    <div className="text-xs text-muted-foreground mt-1">Phí dịch vụ</div>
-                  </Card>
-                  <Card className="text-center">
-                    <div className="text-2xl font-bold text-accent">7-10</div>
-                    <div className="text-xs text-muted-foreground mt-1">Ngày giao</div>
-                  </Card>
-                  <Card className="text-center">
-                    <div className="text-2xl font-bold text-secondary">24/7</div>
-                    <div className="text-xs text-muted-foreground mt-1">Hỗ trợ</div>
-                  </Card>
-                </div>
+
               </div>
             </div>
           </div>
@@ -215,36 +194,6 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Customer Reviews */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Khách hàng nói gì về chúng tôi
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {reviews.map((review, index) => (
-              <Card key={index} className="relative">
-                <div className="flex gap-1 mb-3">
-                  {[...Array(review.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-4 italic">"{review.comment}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold">
-                    {review.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="font-semibold">{review.name}</div>
-                    <div className="text-xs text-muted-foreground">Khách hàng</div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FAQ Section */}
       <section className="py-16 bg-muted">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -281,7 +230,7 @@ export function HomePage() {
             Sẵn sàng đặt hàng?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Tham gia hàng nghìn khách hàng tin dùng Yufiz mỗi ngày
+            Tạo tài khoản để lưu và theo dõi đơn hàng của bạn
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link to="/register">

@@ -9,7 +9,7 @@ export interface User {
 }
 
 export function isLoggedIn(): boolean {
-  return !!localStorage.getItem("token");
+  return !!localStorage.getItem("token") && getUserId() !== null;
 }
 
 export function getCurrentUser(): User | null {
@@ -34,7 +34,8 @@ export function getCurrentUser(): User | null {
 
 export function getUserId(): number | null {
   const userId = localStorage.getItem("userId");
-  return userId ? parseInt(userId) : null;
+  const id = Number(userId);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
 export function setAuthData(data: {
@@ -66,3 +67,6 @@ export function clearAuthData(): void {
 export function getAuthToken(): string | null {
   return localStorage.getItem("token");
 }
+
+export const clearUserData = clearAuthData;
+export function getCurrentUserName() { return getCurrentUser()?.fullName || ""; }

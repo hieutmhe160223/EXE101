@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { ShoppingCart, Mail, Lock } from "lucide-react";
@@ -7,7 +7,8 @@ import api from "../utils/api";
 import { setAuthData } from "../utils/auth";
 
 export function LoginPage() {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -24,24 +25,20 @@ export function LoginPage() {
         password: formData.password,
       });
 
-      const data = response.data; 
+      const data = response.data;
 
-      localStorage.setItem("userId", data.userId.toString());
-      localStorage.setItem("token", data.accessToken);
-      localStorage.setItem("userEmail", data.email);
-      localStorage.setItem("userFullName", data.fullName);
-      localStorage.setItem("userRole", data.role);
-      localStorage.setItem("userPhone", data.phoneNumber);
+      setAuthData({ ...data, phoneNumber: data.phoneNumber || "" });
 
 
       window.dispatchEvent(new Event("authChange"));
       alert(`Chào mừng quay trở lại, ${data.fullName}!`);
 
-      navigate("/");
-      
+      const next = params.get("next");
+      navigate(next?.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/", { replace: true });
+
     } catch (error: any) {
       console.error("Lỗi đăng nhập:", error);
-      
+
       const errorMessage = error.response?.data?.message || error.response?.data || "Đăng nhập thất bại!";
       alert(errorMessage);
     }
@@ -69,7 +66,7 @@ export function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
-                  type="email" 
+                  type="email"
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })

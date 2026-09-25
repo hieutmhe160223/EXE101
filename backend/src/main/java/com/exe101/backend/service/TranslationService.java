@@ -13,14 +13,15 @@ import java.util.Map;
 @Service
 public class TranslationService {
 
-    @Value("${rapidapi.key}") private String rapidApiKey;
-    @Value("${rapidapi.translate.host}") private String rapidApiHost;
-    @Value("${rapidapi.translate.url}") private String translateUrl;
+    @Value("${rapidapi.key:}") private String rapidApiKey;
+    @Value("${rapidapi.translate.host:google-api31.p.rapidapi.com}") private String rapidApiHost;
+    @Value("${rapidapi.translate.url:https://google-api31.p.rapidapi.com/gtranslate}") private String translateUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = new org.springframework.boot.web.client.RestTemplateBuilder()
+            .setConnectTimeout(java.time.Duration.ofSeconds(5)).setReadTimeout(java.time.Duration.ofSeconds(20)).build();
 
     public String translateToVietnamese(String text) {
-        if (text == null || text.isBlank()) return text;
+        if (text == null || text.isBlank() || rapidApiKey.isBlank()) return text;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

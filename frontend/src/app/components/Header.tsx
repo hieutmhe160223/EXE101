@@ -1,37 +1,34 @@
 import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router'; 
-import { ShoppingCart, Bell, User, Menu, Heart, Wallet, LogOut } from 'lucide-react';
-import { clearUserData, isLoggedIn as checkIsLoggedIn, getCurrentUserName } from '../utils/auth';
+import { Link, useNavigate, useLocation } from 'react-router';
+import { ShoppingCart, Bell, Menu, Heart, Wallet } from 'lucide-react';
+import { clearUserData, isLoggedIn as checkIsLoggedIn } from '../utils/auth';
+import { AccountMenu } from './AccountMenu';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation(); 
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
-  const [userFullName, setUserFullName] = React.useState("Tài khoản"); 
 
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   React.useEffect(() => {
     const checkAuth = () => {
       setIsLoggedIn(checkIsLoggedIn());
-      const fullName = getCurrentUserName() || "Tài khoản";
-      setUserFullName(fullName);
     };
 
-    checkAuth(); 
+    checkAuth();
 
     window.addEventListener("authChange", checkAuth);
-    window.addEventListener("storage", checkAuth); 
+    window.addEventListener("storage", checkAuth);
 
     return () => {
       window.removeEventListener("authChange", checkAuth);
       window.removeEventListener("storage", checkAuth);
     };
-  }, [location]); 
+  }, [location]);
 
   const handleLogout = () => {
     clearUserData();
-    setIsLoggedIn(false); 
+    setIsLoggedIn(false);
     alert("Đã đăng xuất tài khoản!");
     navigate("/");
   };
@@ -53,13 +50,13 @@ export const Header: React.FC = () => {
             <Link to="/product-input" className="text-gray-700 hover:text-[#FF6A00] transition-colors">
               Đặt hàng
             </Link>
-            
+
             {isLoggedIn && (
               <Link to="/orders" className="text-gray-700 hover:text-[#FF6A00] transition-colors">
                 Đơn hàng
               </Link>
             )}
-            
+
             <Link to="/exchange-rate" className="text-gray-700 hover:text-[#FF6A00] transition-colors">
               Tỷ giá
             </Link>
@@ -71,51 +68,33 @@ export const Header: React.FC = () => {
           {/* Right Actions */}
           <div className="flex items-center space-x-4">
             {isLoggedIn ? (
-              
+
               <>
                 <button onClick={() => navigate('/wishlist')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors relative">
                   <Heart className="w-6 h-6" />
-                  <span className="absolute -top-1 -right-1 bg-[#FF6A00] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    3
-                  </span>
+
                 </button>
                 <button onClick={() => navigate('/wallet')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors">
                   <Wallet className="w-6 h-6" />
                 </button>
                 <button onClick={() => navigate('/notifications')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors relative">
                   <Bell className="w-6 h-6" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+
                 </button>
 
-                <div className="flex items-center space-x-2">
-                  <button 
-                    onClick={() => navigate('/profile')} 
-                    className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors"
-                  >
-                    <User className="w-4 h-4 text-gray-500" />
-                    <span>{userFullName}</span>
-                  </button>
-                  
-                  <button 
-                    onClick={handleLogout}
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                    title="Đăng xuất"
-                  >
-                    <LogOut className="w-5 h-5" />
-                  </button>
-                </div>
+                <AccountMenu onLogout={handleLogout} />
               </>
             ) : (
-              
+
               <div className="hidden md:flex items-center space-x-3">
-                <button 
-                  onClick={() => navigate('/login')} 
+                <button
+                  onClick={() => navigate('/login')}
                   className="text-gray-700 hover:text-[#FF6A00] font-medium transition-colors"
                 >
                   Đăng nhập
                 </button>
-                <button 
-                  onClick={() => navigate('/register')} 
+                <button
+                  onClick={() => navigate('/register')}
                   className="bg-[#FF6A00] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#FF8533] transition-colors shadow-sm"
                 >
                   Đăng ký
@@ -123,7 +102,7 @@ export const Header: React.FC = () => {
               </div>
             )}
 
-            <button 
+            <button
               className="md:hidden p-2 text-gray-600"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
@@ -138,13 +117,13 @@ export const Header: React.FC = () => {
             <Link to="/product-input" className="block py-2 text-gray-700 hover:text-[#FF6A00]">
               Đặt hàng
             </Link>
-            
+
             {isLoggedIn && (
               <Link to="/orders" className="block py-2 text-gray-700 hover:text-[#FF6A00]">
                 Đơn hàng
               </Link>
             )}
-            
+
             <Link to="/exchange-rate" className="block py-2 text-gray-700 hover:text-[#FF6A00]">
               Tỷ giá
             </Link>

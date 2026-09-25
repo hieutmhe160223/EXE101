@@ -1,0 +1,7 @@
+.cache/
+frontend/dist/
+frontend/.env.local
+backend/.env
+
+frontend/test-results/
+frontend/playwright-report/

@@ -7,15 +7,17 @@ import com.exe101.backend.repository.UserAccountRepository;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import java.util.UUID;
+
 
 @Service
 public class AuthService {
     private final UserAccountRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    public AuthService(UserAccountRepository userRepository, PasswordEncoder passwordEncoder) {
+    private final SessionTokenService sessionTokens;
+    public AuthService(UserAccountRepository userRepository, PasswordEncoder passwordEncoder, SessionTokenService sessionTokens) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.sessionTokens = sessionTokens;
     }
     public LoginResponse login(LoginRequest request) {
         UserAccount user = userRepository.findByEmail(request.email())
@@ -23,8 +25,12 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid email or password");
         }
-        String accessToken = UUID.randomUUID().toString();
+        if (user.getStatus() != com.exe101.backend.model.AccountStatus.ACTIVE) {
+            throw new BadCredentialsException("Tài khoản không hoạt động");
+        }
+        String accessToken = sessionTokens.issue(user);
         return new LoginResponse(
+                user.getId(),
                 accessToken,
                 "Bearer",
                 user.getEmail(),

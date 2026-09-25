@@ -31,9 +31,12 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final com.exe101.backend.service.DepositPaymentService payments;
+    private final com.exe101.backend.service.CurrentUser currentUser;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, com.exe101.backend.service.DepositPaymentService payments, com.exe101.backend.service.CurrentUser currentUser) {
         this.orderService = orderService;
+        this.payments=payments; this.currentUser=currentUser;
     }
 
     @PostMapping
@@ -66,11 +69,12 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/final-payment")
-    public ResponseEntity<PaymentTransactionResponse> payFinalAmount(
+    public ResponseEntity<?> payFinalAmount(
             @PathVariable Long orderId,
             @Valid @RequestBody FinalPaymentRequest request
     ) {
-        return ResponseEntity.ok(orderService.payFinalAmount(orderId, request));
+        currentUser.requireId(request.customerId());
+        return ResponseEntity.ok(payments.create(orderId,request.paymentMethod(),com.exe101.backend.model.PaymentType.FINAL_30));
     }
 
     @PostMapping("/{orderId}/return-requests")
@@ -81,4 +85,6 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(orderService.createReturnRequest(orderId, request));
     }
+    @PostMapping("/{orderId}/cancel")
+    public Object cancel(@PathVariable Long orderId) { return orderService.cancelUnpaid(orderId); }
 }

@@ -1,13 +1,15 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { ShoppingCart, Package, Wallet, Gift, Bell, User, Menu, X, Search, LogOut } from "lucide-react";
+import { ShoppingCart, Package, Wallet, Gift, User, Menu, X, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clearUserData, isLoggedIn as checkIsLoggedIn, getCurrentUserName } from "../utils/auth";
+import { AccountMenu } from "./AccountMenu";
+import { NotificationBell } from "./NotificationBell";
 
 export function Layout() {
   const location = useLocation();
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userFullName, setUserFullName] = useState("Tài khoản");
 
@@ -20,7 +22,7 @@ export function Layout() {
       setUserFullName(fullName);
     };
 
-    checkAuth(); 
+    checkAuth();
 
     window.addEventListener("authChange", checkAuth);
     window.addEventListener("storage", checkAuth);
@@ -71,7 +73,7 @@ export function Layout() {
                 <Search className="w-4 h-4" />
                 Đặt hàng
               </Link>
-              
+
               {/* CHỈ HIỆN ĐƠN HÀNG VÀ VÍ TIỀN KHI ĐÃ ĐĂNG NHẬP */}
               {isLoggedIn && (
                 <>
@@ -105,42 +107,19 @@ export function Layout() {
             <div className="flex items-center gap-4">
               {isLoggedIn ? (
                 <>
-                  <Link
-                    to="/notifications"
-                    className="relative p-2 hover:bg-muted rounded-lg transition-colors"
-                  >
-                    <Bell className="w-5 h-5" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      to="/profile"
-                      className="hidden md:flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
-                    >
-                      <User className="w-5 h-5" />
-                      <span>{userFullName}</span>
-                    </Link>
-                    
-                    {/* Nút Đăng xuất trên Desktop */}
-                    <button 
-                      onClick={handleLogout}
-                      className="p-2 text-gray-400 hover:text-destructive rounded-lg transition-colors"
-                      title="Đăng xuất"
-                    >
-                      <LogOut className="w-5 h-5" />
-                    </button>
-                  </div>
+                  <NotificationBell />
+                  <AccountMenu onLogout={handleLogout} />
                 </>
               ) : (
                 <div className="hidden md:flex items-center gap-3">
-                  <button 
-                    onClick={() => navigate('/login')} 
+                  <button
+                    onClick={() => navigate('/login')}
                     className="text-foreground hover:text-primary font-medium transition-colors"
                   >
                     Đăng nhập
                   </button>
-                  <button 
-                    onClick={() => navigate('/register')} 
+                  <button
+                    onClick={() => navigate('/register')}
                     className="bg-gradient-to-r from-primary to-orange-600 text-white px-4 py-2 rounded-xl font-medium hover:opacity-90 transition-opacity shadow-sm"
                   >
                     Đăng ký
@@ -204,7 +183,7 @@ export function Layout() {
                   <Gift className="w-5 h-5" />
                   Giới thiệu
                 </Link>
-                
+
                 {isLoggedIn ? (
                   <div className="flex flex-col gap-2 pt-4 border-t border-border px-4">
                     <Link
@@ -215,8 +194,8 @@ export function Layout() {
                       <User className="w-5 h-5" />
                       Tài khoản ({userFullName})
                     </Link>
-                    <button 
-                      onClick={() => { setMobileMenuOpen(false); handleLogout(); }} 
+                    <button
+                      onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
                       className="w-full py-2.5 text-center text-destructive font-medium rounded-lg border border-destructive/20 hover:bg-destructive/5"
                     >
                       Đăng xuất

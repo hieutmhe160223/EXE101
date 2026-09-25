@@ -37,4 +37,5 @@ public class SupportTicket extends AuditableEntity {
 
     protected SupportTicket() {
     }
+    public SupportTicket(UserAccount customer,String subject) { this.customer=customer;this.subject=subject; }
 }

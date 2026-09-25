@@ -43,4 +43,7 @@ public class SourcingRequest extends AuditableEntity {
 
     protected SourcingRequest() {
     }
+    public SourcingRequest(UserAccount customer,String description,BigDecimal budget) {
+        this.customer=customer;this.requirementDescription=description;this.expectedBudgetVnd=budget;
+    }
 }

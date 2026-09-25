@@ -113,6 +113,16 @@ public class UserAccount extends AuditableEntity {
     public BigDecimal getWalletBalance() {
         return walletBalance;
     }
+    public void creditWallet(BigDecimal amount) {
+        if(amount==null||amount.signum()<=0)throw new IllegalArgumentException("Số tiền nạp không hợp lệ");
+        walletBalance=(walletBalance==null?BigDecimal.ZERO:walletBalance).add(amount);
+    }
+    public void debitWallet(BigDecimal amount) {
+        if(amount==null||amount.signum()<=0)throw new IllegalArgumentException("Số tiền thanh toán không hợp lệ");
+        BigDecimal current=walletBalance==null?BigDecimal.ZERO:walletBalance;
+        if(current.compareTo(amount)<0)throw new IllegalStateException("Số dư ví Yufiz không đủ để thanh toán");
+        walletBalance=current.subtract(amount);
+    }
 
     public AccountStatus getStatus() {
         return status;

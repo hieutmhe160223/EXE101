@@ -5,9 +5,24 @@ spring:
     password:
     driver-class-name: org.h2.Driver
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
-  h2:
-    console:
-      enabled: false
+  sql:
+    init:
+      mode: never
+app:
+  seed-demo: true
+momo:
+  partner-code: ""
+  access-key: ""
+  secret-key: ""
+  ipn-url: ""
+vietqr:
+  bank-code: TEST
+  account-number: "0000000000"
+  account-name: TEST ONLY
+logging:
+  level:
+    root: WARN

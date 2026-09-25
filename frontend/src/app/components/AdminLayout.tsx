@@ -1,4 +1,5 @@
-import { Outlet, Link, useLocation } from "react-router";
+import { isLoggedIn, getCurrentUser } from "../utils/auth";
+import { Outlet, Link, useLocation, Navigate } from "react-router";
 import {
   LayoutDashboard,
   Package,
@@ -10,6 +11,7 @@ import {
   Menu,
   X,
   ShoppingCart,
+  RotateCcw,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -19,6 +21,8 @@ export function AdminLayout() {
 
   const navItems = [
     { path: "/admin", icon: LayoutDashboard, label: "Tổng quan" },
+    { path: "/admin/payments", icon: Package, label: "Đối soát chuyển khoản" },
+    { path: "/admin/refunds", icon: RotateCcw, label: "Duyệt hoàn tiền" },
     { path: "/admin/orders", icon: Package, label: "Quản lý đơn hàng" },
     { path: "/admin/customers", icon: Users, label: "Khách hàng" },
     { path: "/admin/complaints", icon: MessageSquare, label: "Khiếu nại" },
@@ -27,6 +31,8 @@ export function AdminLayout() {
     { path: "/admin/reports", icon: BarChart3, label: "Báo cáo" },
   ];
 
+  if (!isLoggedIn()) return <Navigate to={"/login?next=" + encodeURIComponent(location.pathname)} replace />;
+  if (getCurrentUser()?.role !== "ADMIN") return <div className="p-8">Bạn không có quyền truy cập trang quản trị.</div>;
   return (
     <div className="min-h-screen bg-muted">
       {/* Mobile Header */}

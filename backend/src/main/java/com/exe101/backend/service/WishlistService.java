@@ -52,7 +52,7 @@ public class WishlistService {
     @Transactional
     public void addToWishlist(Long userId, Long productQuoteId) {
         // Fetch user
-        UserAccount user = userAccountRepository.findById(userId)
+        UserAccount user = userAccountRepository.lockById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
         // Fetch product quote

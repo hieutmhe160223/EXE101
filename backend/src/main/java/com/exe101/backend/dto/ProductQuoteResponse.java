@@ -18,6 +18,21 @@ public class ProductQuoteResponse {
     private BigDecimal depositAmountVnd;
     private BigDecimal exchangeRate;
     private String exchangeRateUpdatedAt;
+    private java.util.List<com.exe101.backend.model.ProductVariant> variants = java.util.List.of();
+    private Boolean sourcePriceVerified;
+    public java.util.List<com.exe101.backend.model.ProductVariant> getVariants() { return variants; }
+    public void setVariants(java.util.List<com.exe101.backend.model.ProductVariant> value) { variants = value; }
+    public Boolean getSourcePriceVerified() { return sourcePriceVerified; }
+    public void setSourcePriceVerified(Boolean value) { sourcePriceVerified = value; }
+    private BigDecimal depositPercent;
+    private Boolean translationComplete;
+    private java.time.OffsetDateTime expiresAt;
+    public BigDecimal getDepositPercent() { return depositPercent; }
+    public void setDepositPercent(BigDecimal value) { depositPercent = value; }
+    public Boolean getTranslationComplete() { return translationComplete; }
+    public void setTranslationComplete(Boolean value) { translationComplete = value; }
+    public java.time.OffsetDateTime getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(java.time.LocalDateTime value) { expiresAt = value == null ? null : value.atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime(); }
 
     // getters + setters
     public Long getQuoteId() { return quoteId; }

@@ -7,7 +7,10 @@ public class CostBreakdownItemDto {
     private BigDecimal value;
     private String currency; // "¥" hoặc "₫"
 
-    public CostBreakdownItemDto(String label, BigDecimal value, String currency) {
+    @com.fasterxml.jackson.annotation.JsonCreator
+    public CostBreakdownItemDto(@com.fasterxml.jackson.annotation.JsonProperty("label") String label,
+            @com.fasterxml.jackson.annotation.JsonProperty("value") BigDecimal value,
+            @com.fasterxml.jackson.annotation.JsonProperty("currency") String currency) {
         this.label = label;
         this.value = value;
         this.currency = currency;

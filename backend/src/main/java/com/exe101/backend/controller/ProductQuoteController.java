@@ -10,12 +10,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/quotes")
-@CrossOrigin(origins = "http://localhost:3000")
+
 public class ProductQuoteController {
 
     private final ProductQuoteService productQuoteService;
+    private final com.exe101.backend.service.ExchangeRateService rates;
 
-    public ProductQuoteController(ProductQuoteService productQuoteService) {
+    public ProductQuoteController(ProductQuoteService productQuoteService, com.exe101.backend.service.ExchangeRateService rates) {
+        this.rates = rates;
         this.productQuoteService = productQuoteService;
     }
 
@@ -30,6 +32,17 @@ public class ProductQuoteController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Đã có lỗi xảy ra, vui lòng thử lại"));
         }
+    }
+
+    @GetMapping("/exchange-rate")
+    public Object exchangeRate() { var rate = rates.getCnyToVndRate(); return Map.of("rate", rate, "updatedAt", rates.getFetchedAt()); }
+
+    @GetMapping("/{id}/similar-products")
+    public Object similar(@PathVariable Long id) { return productQuoteService.similar(id); }
+
+    @GetMapping("/{id}/price-preview")
+    public Object preview(@PathVariable Long id, @RequestParam(defaultValue = "1") int quantity, @RequestParam(required = false) String variant) {
+        return productQuoteService.preview(id, quantity, variant);
     }
 
     @GetMapping("/{id}")

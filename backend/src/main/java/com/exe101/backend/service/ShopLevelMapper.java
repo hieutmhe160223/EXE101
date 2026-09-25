@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 public class ShopLevelMapper {
 
     public ShopLevel map(ApifyItemDetail item) {
-        if (item.getSellerCreditLevel() == null) return ShopLevel.UNKNOWN;
-
         if (item.isYxpPro()) return ShopLevel.PRO;
+
+        if (item.getSellerCreditLevel() == null) return ShopLevel.UNKNOWN;
 
         double goodRate = parsePercent(item.getGoodReviewRate());
         int registeredDays = item.getRegisteredDays() == null ? 0 : item.getRegisteredDays();
@@ -46,6 +46,7 @@ public class ShopLevelMapper {
 
     private double parsePercent(String s) {
         if (s == null || s.isBlank()) return 0;
-        return Double.parseDouble(s.replace("%", "").trim());
+        try { return Double.parseDouble(s.replace("%", "").trim()); }
+        catch (NumberFormatException ex) { return 0; }
     }
 }

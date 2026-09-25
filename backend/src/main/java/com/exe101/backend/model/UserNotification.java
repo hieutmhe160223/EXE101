@@ -42,6 +42,28 @@ public class UserNotification extends AuditableEntity {
 
     private LocalDateTime readAt;
 
+    @Column(unique = true, length = 160)
+    private String eventKey;
+
     protected UserNotification() {
     }
+
+    public UserNotification(UserAccount user, NotificationType type, String title, String body, String targetUrl, String eventKey) {
+        this.user = user;
+        this.type = type;
+        this.title = title;
+        this.body = body;
+        this.targetUrl = targetUrl;
+        this.eventKey = eventKey;
+    }
+
+    public Long getId() { return id; }
+    public UserAccount getUser() { return user; }
+    public NotificationType getType() { return type; }
+    public String getTitle() { return title; }
+    public String getBody() { return body; }
+    public String getTargetUrl() { return targetUrl; }
+    public LocalDateTime getReadAt() { return readAt; }
+    public String getEventKey() { return eventKey; }
+    public void markRead() { if (readAt == null) readAt = LocalDateTime.now(); }
 }

@@ -19,24 +19,34 @@ public class ApifyXianyuService {
 
     private static final Pattern ID_PATTERN = Pattern.compile("[?&]id=(\\d+)");
 
-    @Value("${apify.token}") private String token;
-    @Value("${apify.base-url}") private String baseUrl;
-    @Value("${apify.actor-item-detail}") private String actorId;
+    @Value("${apify.token:}") private String token;
+    @Value("${apify.base-url:https://api.apify.com/v2}") private String baseUrl;
+    @Value("${apify.actor-item-detail:zen-studio~goofish-xianyu-item-detail-scraper}") private String actorId;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = new org.springframework.boot.web.client.RestTemplateBuilder()
+            .setConnectTimeout(java.time.Duration.ofSeconds(10)).setReadTimeout(java.time.Duration.ofSeconds(150)).build();
 
     public String extractItemId(String url) {
-        Matcher m = ID_PATTERN.matcher(url);
+        if (url == null || url.length() > 2000) throw new IllegalArgumentException("Link không hợp lệ");
+        java.net.URI uri = java.net.URI.create(url.trim());
+        String host = uri.getHost();
+        if (!("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme())) || host == null || uri.getUserInfo() != null)
+            throw new IllegalArgumentException("Vui lòng nhập link http/https hợp lệ");
+        host = host.toLowerCase(java.util.Locale.ROOT);
+        if (!(host.equals("goofish.com") || host.endsWith(".goofish.com") || host.equals("2.taobao.com")))
+            throw new IllegalArgumentException("Hiện chỉ phân tích link Xianyu (goofish.com). Taobao đang được tích hợp.");
+        Matcher m = ID_PATTERN.matcher(uri.getRawQuery() == null ? "" : "?" + uri.getRawQuery());
         if (m.find()) return m.group(1);
         throw new IllegalArgumentException("Không tìm thấy item ID trong link: " + url);
     }
 
     public ApifyItemDetail fetchItemDetail(String itemId) {
-        String endpoint = String.format("%s/acts/%s/run-sync-get-dataset-items?token=%s",
-                baseUrl, actorId, token);
+        if (token.isBlank()) throw new IllegalStateException("Chưa cấu hình dịch vụ lấy dữ liệu sản phẩm");
+        String endpoint = String.format("%s/acts/%s/run-sync-get-dataset-items", baseUrl, actorId);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
         Map<String, Object> body = Map.of("startUrls", List.of(itemId));
 
         JsonNode response = restTemplate.postForObject(

@@ -1,8 +1,8 @@
 package com.exe101.backend.dto;
 
 public record UpdateProfileRequest(
-    String fullName,
-    String email,
+    @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=150) String fullName,
+    @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Email String email,
     String dob,
-    String phoneNumber
+    @jakarta.validation.constraints.Size(max=20) String phoneNumber
 ) {}

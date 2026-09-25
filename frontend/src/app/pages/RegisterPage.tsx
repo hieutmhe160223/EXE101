@@ -31,7 +31,7 @@ export function RegisterPage() {
         phoneNumber: formData.phoneNumber,
         email: formData.email,
         password: formData.password,
-        // confirmPassword: formData.confirmPassword,
+        confirmPassword: formData.confirmPassword,
       });
 
       if (typeof response.data === "object") {
@@ -44,7 +44,15 @@ export function RegisterPage() {
       
     } catch (error: any) {
       console.error("Lỗi đăng ký:", error);
-      const errorMessage = error.response?.data?.message || error.response?.data || "Đăng ký thất bại, vui lòng thử lại!";
+      let errorMessage = "Đăng ký thất bại, vui lòng thử lại!";
+      const responseData = error.response?.data;
+      if (responseData?.errors && typeof responseData.errors === "object") {
+        errorMessage = Object.values(responseData.errors).join("\n");
+      } else if (responseData?.message) {
+        errorMessage = responseData.message;
+      } else if (typeof responseData === "string") {
+        errorMessage = responseData;
+      }
       alert(errorMessage);
     }
   };

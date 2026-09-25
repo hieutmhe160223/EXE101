@@ -2,11 +2,12 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Search, Link as LinkIcon, Clock, TrendingUp, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import api from "../utils/api";
 
 export function ProductLinkInputPage() {
-  const [url, setUrl] = useState("");
+  const [params] = useSearchParams();
+  const [url, setUrl] = useState(params.get("url") || "");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +18,7 @@ export function ProductLinkInputPage() {
   useEffect(() => {
     const savedSearches = localStorage.getItem("yufiz_recent_searches");
     if (savedSearches) {
-      setRecentSearches(JSON.parse(savedSearches));
+      try { const values = JSON.parse(savedSearches); if (Array.isArray(values)) setRecentSearches(values.filter(v => typeof v === "string").slice(0, 5)); } catch {}
     }
     
     // Fetch exchange rate on mount
@@ -26,16 +27,16 @@ export function ProductLinkInputPage() {
 
   const fetchExchangeRate = async () => {
     try {
-      // Try to get exchange rate from a recent quote or config endpoint
-      // For now, we'll set a default until we have a specific endpoint
-      setExchangeRate(3650);
-      setExchangeRateUpdatedAt(new Date().toLocaleString('vi-VN'));
+      const response = await api.get("/quotes/exchange-rate");
+      setExchangeRate(response.data.rate);
+      setExchangeRateUpdatedAt(new Date(response.data.updatedAt).toLocaleString("vi-VN"));
     } catch (err) {
       console.error("Failed to fetch exchange rate:", err);
     }
   };
 
   const handleAnalyze = async () => {
+    if (loading) return;
     if (!url.trim()) {
       setError("Vui lòng nhập link sản phẩm");
       return;
@@ -150,7 +151,7 @@ export function ProductLinkInputPage() {
             <div>
               <h3 className="font-semibold mb-2">Tỷ giá hôm nay</h3>
               <div className="text-2xl font-bold text-primary mb-1">
-                {exchangeRate ? `1 ¥ = ${exchangeRate.toLocaleString()} đ` : "Đang tải..."}
+                {exchangeRate ? `1 ¥ = ${exchangeRate.toLocaleString()} đ` : "Chưa có tỷ giá"}
               </div>
               <p className="text-sm text-muted-foreground">
                 {exchangeRateUpdatedAt ? `Cập nhật: ${exchangeRateUpdatedAt}` : ""}

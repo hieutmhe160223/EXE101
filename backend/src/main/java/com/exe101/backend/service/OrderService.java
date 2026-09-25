@@ -66,6 +66,9 @@ public class OrderService {
     private final ProductQuoteRepository productQuoteRepository;
     private final UserAccountRepository userAccountRepository;
     private final FeeConfigService feeConfigService;
+    private final PricingService pricing;
+    private final CurrentUser currentUser;
+    private final NotificationService notifications;
 
     public OrderService(
             PurchaseOrderRepository purchaseOrderRepository,
@@ -75,7 +78,8 @@ public class OrderService {
             ReturnRequestRepository returnRequestRepository,
             ProductQuoteRepository productQuoteRepository,
             UserAccountRepository userAccountRepository,
-            FeeConfigService feeConfigService
+            FeeConfigService feeConfigService,
+            PricingService pricing, CurrentUser currentUser, NotificationService notifications
     ) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.orderStatusHistoryRepository = orderStatusHistoryRepository;
@@ -85,10 +89,12 @@ public class OrderService {
         this.productQuoteRepository = productQuoteRepository;
         this.userAccountRepository = userAccountRepository;
         this.feeConfigService = feeConfigService;
+        this.pricing = pricing; this.currentUser = currentUser; this.notifications = notifications;
     }
 
     @Transactional(readOnly = true)
     public List<OrderSummaryResponse> getOrderHistory(Long customerId) {
+        currentUser.requireId(customerId);
         return purchaseOrderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)
                 .stream()
                 .map(this::toSummaryResponse)
@@ -97,40 +103,48 @@ public class OrderService {
 
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequest request) {
+        currentUser.requireId(request.customerId());
         // Fetch ProductQuote
         ProductQuote quote = productQuoteRepository.findById(request.productQuoteId())
                 .orElseThrow(() -> new EntityNotFoundException("ProductQuote not found with id: " + request.productQuoteId()));
 
         // Fetch Customer
-        UserAccount customer = userAccountRepository.findById(request.customerId())
+        UserAccount customer = userAccountRepository.lockById(request.customerId())
                 .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + request.customerId()));
 
+        var previous = purchaseOrderRepository.findByCustomerIdAndRequestKey(customer.getId(), request.requestKey());
+        if (previous.isPresent()) {
+            PurchaseOrder existing = previous.get();
+            if (!existing.getQuantity().equals(request.quantity()) || !existing.getShippingAddress().equals(request.shippingAddress())
+                    || !existing.getProductQuote().getId().equals(request.productQuoteId())
+                    || !java.util.Objects.equals(existing.getVariantSelected(), request.variantSelected())
+                    || !java.util.Objects.equals(existing.getCustomerNote(), request.customerNote()))
+                throw new IllegalStateException("Yêu cầu đã tạo một đơn với thông tin khác. Vui lòng kiểm tra danh sách đơn.");
+            try { return createdResponse(existing, new com.fasterxml.jackson.databind.ObjectMapper().readValue(existing.getCostSnapshotJson(), com.exe101.backend.dto.PricePreviewResponse.class)); }
+            catch (com.fasterxml.jackson.core.JsonProcessingException e) { throw new IllegalStateException("Không đọc được bảng giá"); }
+        }
+        if (quote.getExpiresAt() == null || quote.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Báo giá đã hết hạn. Vui lòng phân tích lại link trước khi đặt.");
+        }
         // Get Fee Config
         FeeConfig feeConfig = feeConfigService.getConfig();
 
         // Generate unique order code
         String orderCode = generateOrderCode();
 
-        // Calculate amounts
-        BigDecimal productPriceCny = quote.getProductPriceCny().multiply(new BigDecimal(request.quantity()));
-        BigDecimal domesticShippingFeeCny = quote.getDomesticShippingFeeCny();
-        BigDecimal serviceFeeVnd = quote.getServiceFeeVnd().multiply(new BigDecimal(request.quantity()));
-        BigDecimal internationalShippingFeeVnd = quote.getInternationalShippingFeeVnd();
-        BigDecimal exchangeRate = quote.getExchangeRate();
-
-        // Total CNY to VND
-        BigDecimal totalCnyInVnd = productPriceCny.add(domesticShippingFeeCny)
-                .multiply(exchangeRate)
-                .setScale(0, RoundingMode.HALF_UP);
-
-        // Grand total VND
-        BigDecimal totalAmountVnd = totalCnyInVnd.add(serviceFeeVnd).add(internationalShippingFeeVnd)
-                .setScale(0, RoundingMode.HALF_UP);
-
-        // Calculate deposit (70%) and final (30%)
-        BigDecimal depositAmountVnd = totalAmountVnd.multiply(feeConfig.getDepositPercent())
-                .setScale(0, RoundingMode.HALF_UP);
-        BigDecimal finalAmountVnd = totalAmountVnd.subtract(depositAmountVnd);
+        if (!quote.getVariants().isEmpty() && (request.variantSelected() == null || request.variantSelected().isBlank()))
+            throw new IllegalArgumentException("Vui lòng chọn phân loại sản phẩm");
+        var price = pricing.calculate(quote, request.quantity(), request.variantSelected());
+        if (price.grandTotalVnd().compareTo(request.expectedTotalVnd()) != 0)
+            throw new IllegalStateException("Báo giá đã thay đổi. Vui lòng tải lại và xác nhận số tiền mới.");
+        BigDecimal productPriceCny = price.productPriceCny();
+        BigDecimal domesticShippingFeeCny = price.domesticShippingFeeCny();
+        BigDecimal serviceFeeVnd = price.serviceFeeVnd();
+        BigDecimal internationalShippingFeeVnd = price.internationalShippingFeeVnd();
+        BigDecimal exchangeRate = price.exchangeRate();
+        BigDecimal totalAmountVnd = price.grandTotalVnd();
+        BigDecimal depositAmountVnd = price.depositAmountVnd();
+        BigDecimal finalAmountVnd = price.finalAmountVnd();
 
         // Create order
         PurchaseOrder order = new PurchaseOrder(
@@ -144,8 +158,9 @@ public class OrderService {
                 request.customerNote()
         );
 
-        // Link to ProductQuote (set via reflection or add setter if needed)
-        // For now, we'll save without linking - you may need to add setProductQuote method to PurchaseOrder
+        order.setRequestKey(request.requestKey());
+        order.setProductSnapshot(quote, request.variantSelected());
+        order.setCostSnapshot(price);
         PurchaseOrder savedOrder = purchaseOrderRepository.save(order);
 
         // Create initial order status history
@@ -156,31 +171,18 @@ public class OrderService {
                 "Đơn hàng được tạo, chờ thanh toán đặt cọc 70%"
         ));
 
-        // Build response
-        return new CreateOrderResponse(
-                savedOrder.getId(),
-                savedOrder.getOrderCode(),
-                savedOrder.getStatus(),
-                savedOrder.getQuantity(),
-                quote.getTranslatedName(),
-                quote.getImageUrl(),
-                request.variantSelected(),
-                savedOrder.getShippingAddress(),
-                savedOrder.getCustomerNote(),
-                productPriceCny,
-                domesticShippingFeeCny,
-                serviceFeeVnd,
-                internationalShippingFeeVnd,
-                exchangeRate,
-                totalAmountVnd,
-                depositAmountVnd,
-                finalAmountVnd,
-                savedOrder.getCreatedAt()
-        );
+        return createdResponse(savedOrder, price);
+    }
+
+    private CreateOrderResponse createdResponse(PurchaseOrder order, com.exe101.backend.dto.PricePreviewResponse price) {
+        return new CreateOrderResponse(order.getId(), order.getOrderCode(), order.getStatus(), order.getQuantity(),
+                order.getProductName(), order.getProductImageUrl(), order.getVariantSelected(), order.getShippingAddress(), order.getCustomerNote(),
+                price.productPriceCny(), price.domesticShippingFeeCny(), price.serviceFeeVnd(), price.internationalShippingFeeVnd(), price.exchangeRate(),
+                order.getTotalAmountVnd(), order.getDepositAmountVnd(), order.getFinalAmountVnd(), order.getCreatedAt());
     }
 
     private String generateOrderCode() {
-        return "ORD" + System.currentTimeMillis();
+        return "ORD" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 20).toUpperCase();
     }
 
     @Transactional(readOnly = true)
@@ -197,13 +199,12 @@ public class OrderService {
             Long orderId,
             VietnamWarehouseConfirmationRequest request
     ) {
-        PurchaseOrder order = purchaseOrderRepository.findById(orderId)
+        PurchaseOrder order = purchaseOrderRepository.lockById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found"));
-        if (order.getStatus() == OrderStatus.CANCELLED
-                || order.getStatus() == OrderStatus.RETURN_REQUESTED
-                || order.getStatus() == OrderStatus.REFUNDED) {
+        if (order.getStatus() != OrderStatus.INTERNATIONAL_SHIPPING) {
             throw new IllegalStateException("Order cannot be confirmed at Vietnam warehouse");
         }
+        if(order.getPaidAmountVnd().compareTo(order.getDepositAmountVnd())<0) throw new IllegalStateException("Đơn chưa nhận đủ cọc");
 
         order.changeStatus(OrderStatus.WAITING_FINAL_PAYMENT);
         orderStatusHistoryRepository.save(new OrderStatusHistory(
@@ -231,58 +232,83 @@ public class OrderService {
         return toDetailResponse(order, histories, inspectionMedia, returnRequests);
     }
 
+    @Transactional(readOnly=true)
+    public OrderDetailResponse adminDetail(Long id) {
+        PurchaseOrder order=purchaseOrderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn"));
+        return toDetailResponse(order,orderStatusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(id),
+                inspectionMediaRepository.findByOrderIdOrderByCreatedAtAsc(id),returnRequestRepository.findByOrderIdOrderByCreatedAtDesc(id));
+    }
     @Transactional
-    public PaymentTransactionResponse payFinalAmount(Long orderId, FinalPaymentRequest request) {
-        PurchaseOrder order = findCustomerOrder(orderId, request.customerId());
-        if (order.getStatus() != OrderStatus.VIETNAM_WAREHOUSE
-                && order.getStatus() != OrderStatus.WAITING_FINAL_PAYMENT) {
-            throw new IllegalStateException("Order is not ready for final payment");
-        }
+    public OrderDetailResponse cancelUnpaid(Long id) {
+        var order=purchaseOrderRepository.lockById(id).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn"));
+        currentUser.requireId(order.getCustomer().getId());
+        if(order.getStatus()==OrderStatus.CANCELLED) return adminDetail(id);
+        if(order.getStatus()!=OrderStatus.WAITING_DEPOSIT || order.getPaidAmountVnd().signum()!=0
+                || paymentTransactionRepository.existsByOrderIdAndStatusIn(id,List.of(PaymentStatus.PENDING,PaymentStatus.PAID,PaymentStatus.REVIEW)))
+            throw new IllegalStateException("Đơn đã có yêu cầu thanh toán hoặc đang xử lý. Vui lòng liên hệ hỗ trợ để kiểm tra trước khi hủy.");
+        order.changeStatus(OrderStatus.CANCELLED);
+        orderStatusHistoryRepository.save(new OrderStatusHistory(order,OrderStatus.CANCELLED,null,"Khách hủy trước khi tạo thanh toán"));
+        return adminDetail(id);
+    }
 
-        paymentTransactionRepository.findFirstByOrderIdAndTypeOrderByCreatedAtDesc(orderId, PaymentType.FINAL_30)
-                .filter(transaction -> transaction.getStatus() == PaymentStatus.PAID)
-                .ifPresent(transaction -> {
-                    throw new IllegalStateException("Final payment has already been paid");
-                });
+    @Transactional(readOnly=true)
+    public org.springframework.data.domain.Page<OrderSummaryResponse> adminList(int page) {
+        return purchaseOrderRepository.findAll(org.springframework.data.domain.PageRequest.of(page,20,
+                org.springframework.data.domain.Sort.by("createdAt").descending())).map(this::toSummaryResponse);
+    }
 
-        LocalDateTime now = LocalDateTime.now();
-        PaymentTransaction payment = paymentTransactionRepository.save(new PaymentTransaction(
-                order,
-                order.getCustomer(),
-                PaymentType.FINAL_30,
-                request.paymentMethod(),
-                PaymentStatus.PAID,
-                order.getFinalAmountVnd(),
-                request.providerTransactionCode(),
-                now
-        ));
-
-        order.addPaidAmount(order.getFinalAmountVnd());
-        order.changeStatus(OrderStatus.FINAL_PAID);
-        orderStatusHistoryRepository.save(new OrderStatusHistory(
-                order,
-                OrderStatus.FINAL_PAID,
-                "Kho VN",
-                "Khach hang da thanh toan 30% con lai"
-        ));
-
-        return toPaymentResponse(payment);
+    @Transactional
+    public OrderDetailResponse advance(Long id, OrderStatus expected, OrderStatus next, String location, String note) {
+        PurchaseOrder order=purchaseOrderRepository.lockById(id).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn"));
+        if(order.getStatus()!=expected) throw new IllegalStateException("Trạng thái đã thay đổi. Vui lòng tải lại đơn.");
+        OrderStatus allowed=switch(expected) {
+            case DEPOSIT_PAID -> OrderStatus.PURCHASED;
+            case PURCHASED -> OrderStatus.SHOP_SHIPPING;
+            case SHOP_SHIPPING -> OrderStatus.CHINA_WAREHOUSE;
+            case CHINA_WAREHOUSE -> OrderStatus.INTERNATIONAL_SHIPPING;
+            case INTERNATIONAL_SHIPPING -> OrderStatus.WAITING_FINAL_PAYMENT;
+            case FINAL_PAID -> OrderStatus.DELIVERING;
+            case DELIVERING -> OrderStatus.COMPLETED;
+            default -> null;
+        };
+        if(next!=allowed) throw new IllegalStateException("Không được bỏ qua bước xử lý hoặc tự xác nhận thanh toán");
+        if(order.getPaidAmountVnd().compareTo(order.getDepositAmountVnd())<0
+                || ((next==OrderStatus.DELIVERING || next==OrderStatus.COMPLETED) && order.getPaidAmountVnd().compareTo(order.getTotalAmountVnd())<0))
+            throw new IllegalStateException("Đơn chưa nhận đủ tiền để chuyển bước");
+        if(expected==OrderStatus.INTERNATIONAL_SHIPPING)
+            orderStatusHistoryRepository.save(new OrderStatusHistory(order,OrderStatus.VIETNAM_WAREHOUSE,location,note));
+        order.changeStatus(next);
+        orderStatusHistoryRepository.save(new OrderStatusHistory(order,next,location,note));
+        notifications.create(order.getCustomer(),com.exe101.backend.model.NotificationType.ORDER_STATUS,
+                "Đơn hàng đã cập nhật", "Đơn "+order.getOrderCode()+" chuyển sang trạng thái "+next+".",
+                "/orders/"+order.getId(),"ORDER:"+order.getId()+":"+next);
+        return adminDetail(id);
     }
 
     @Transactional
     public ReturnRequestResponse createReturnRequest(Long orderId, ReturnRequestCreateRequest request) {
-        PurchaseOrder order = findCustomerOrder(orderId, request.customerId());
+        currentUser.requireId(request.customerId());
+        PurchaseOrder order = purchaseOrderRepository.lockById(orderId).orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn"));
+        currentUser.requireId(order.getCustomer().getId());
         if (order.getStatus() != OrderStatus.COMPLETED
                 && order.getStatus() != OrderStatus.DELIVERING
                 && order.getStatus() != OrderStatus.FINAL_PAID) {
-            throw new IllegalStateException("Order is not eligible for return request");
+            throw new IllegalStateException("Đơn hiện không đủ điều kiện yêu cầu hoàn tiền");
         }
+        if(returnRequestRepository.existsByOrderIdAndStatusIn(orderId,List.of(com.exe101.backend.model.ReturnRequestStatus.REQUESTED,
+                com.exe101.backend.model.ReturnRequestStatus.REVIEWING,com.exe101.backend.model.ReturnRequestStatus.APPROVED)))
+            throw new IllegalStateException("Đơn đang có yêu cầu hoàn tiền chưa xử lý");
+        BigDecimal refundable=order.getPaidAmountVnd().subtract(order.getRefundedAmountVnd());
+        BigDecimal requested=request.requestedAmountVnd()==null?refundable:request.requestedAmountVnd();
+        if(requested.signum()<=0||requested.stripTrailingZeros().scale()>0||requested.compareTo(refundable)>0)
+            throw new IllegalArgumentException("Số tiền yêu cầu hoàn không hợp lệ");
 
         ReturnRequest returnRequest = returnRequestRepository.save(new ReturnRequest(
                 order,
                 order.getCustomer(),
                 request.reason(),
-                request.evidenceUrl()
+                request.evidenceUrl(),
+                requested
         ));
 
         order.changeStatus(OrderStatus.RETURN_REQUESTED);
@@ -292,11 +318,15 @@ public class OrderService {
                 null,
                 "Khach hang da gui yeu cau doi/tra hang"
         ));
+        notifications.create(order.getCustomer(),com.exe101.backend.model.NotificationType.REFUND,
+                "Đã nhận yêu cầu hoàn tiền", "Yufiz đã nhận yêu cầu hoàn "+requested.toPlainString()+" VND cho đơn "+order.getOrderCode()+".",
+                "/orders/"+order.getId(),"REFUND:"+returnRequest.getId()+":REQUESTED");
 
         return toReturnRequestResponse(returnRequest);
     }
 
     private PurchaseOrder findCustomerOrder(Long orderId, Long customerId) {
+        currentUser.requireId(customerId);
         return purchaseOrderRepository.findByIdAndCustomerId(orderId, customerId)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found"));
     }
@@ -330,13 +360,16 @@ public class OrderService {
                 order.getDepositAmountVnd(),
                 order.getFinalAmountVnd(),
                 order.getPaidAmountVnd(),
+                order.getRefundedAmountVnd(),
                 order.getShippingAddress(),
                 order.getCustomerNote(),
                 order.getCreatedAt(),
                 order.getUpdatedAt(),
                 buildTimeline(order, histories),
                 inspectionMedia.stream().map(this::toInspectionMediaResponse).toList(),
-                returnRequests.stream().map(this::toReturnRequestResponse).toList()
+                returnRequests.stream().map(this::toReturnRequestResponse).toList(),
+                order.getProductName(), order.getProductImageUrl(), order.getSourceUrl(), order.getVariantSelected(),
+                order.getCostSnapshotJson()
         );
     }
 
@@ -409,6 +442,9 @@ public class OrderService {
                 request.getEvidenceUrl(),
                 request.getStatus(),
                 request.getAdminNote(),
+                request.getRequestedAmountVnd(),
+                request.getApprovedAmountVnd(),
+                request.getReviewedAt(),
                 request.getCreatedAt()
         );
     }
