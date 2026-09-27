@@ -12,6 +12,9 @@ spring:
   sql:
     init:
       mode: never
+  mail:
+    host: localhost
+    port: 25
   h2:
     console:
       enabled: false

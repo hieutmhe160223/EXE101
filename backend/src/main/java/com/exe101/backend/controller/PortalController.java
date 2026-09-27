@@ -45,19 +45,6 @@ public class PortalController {
     @GetMapping("/admin/returns") public Object returns() {
         return rows("select new map(r.id as id,r.order.id as orderId,r.order.orderCode as orderCode,r.customer.email as customerEmail,r.customer.fullName as customerName,r.reason as reason,r.evidenceUrl as evidenceUrl,r.status as status,r.requestedAmountVnd as requestedAmountVnd,r.approvedAmountVnd as approvedAmountVnd,r.order.paidAmountVnd as paidAmountVnd,r.order.refundedAmountVnd as refundedAmountVnd,r.adminNote as adminNote,r.reviewedAt as reviewedAt,r.createdAt as createdAt) from ReturnRequest r order by r.createdAt desc",false);
     }
-    public record AddressBody(@NotBlank @Size(max=150) String fullName,@NotBlank @Size(max=20) String phone,
-        @NotBlank @Size(max=500) String addressDetail,boolean isDefault) {}
-    @PutMapping("/user/addresses/{id}") public void editAddress(@PathVariable Long id,@Valid @RequestBody AddressBody b) {
-        var a=ownedAddress(id);
-        if(b.isDefault())em.createQuery("update UserAddress a set a.isDefault=false where a.user.id=:uid").setParameter("uid",user.id()).executeUpdate();
-        a.setFullName(b.fullName());a.setPhone(b.phone());a.setAddressDetail(b.addressDetail());a.setDefault(b.isDefault());
-    }
-    @DeleteMapping("/user/addresses/{id}") public void deleteAddress(@PathVariable Long id) { em.remove(ownedAddress(id)); }
-    private UserAddress ownedAddress(Long id) {
-        var a=em.find(UserAddress.class,id);
-        if(a==null)throw new EntityNotFoundException("Không tìm thấy địa chỉ");
-        user.requireId(a.getUser().getId());return a;
-    }
     public record SourcingBody(@NotBlank @Size(max=5000) String description,@DecimalMin("0") java.math.BigDecimal budget) {}
     @GetMapping("/user/sourcing") public Object sourcing() {
         return rows("select new map(s.id as id,s.requirementDescription as description,s.expectedBudgetVnd as budget,s.status as status,s.createdAt as createdAt) from SourcingRequest s where s.customer.id=:uid order by s.createdAt desc",true);

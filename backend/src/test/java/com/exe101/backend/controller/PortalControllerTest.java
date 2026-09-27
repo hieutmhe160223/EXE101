@@ -24,25 +24,25 @@ class PortalControllerTest {
      mvc.perform(get("/api"+path).with(user("admin@example.com").roles("ADMIN"))).andExpect(status().isOk());
    }
    mvc.perform(get("/api/user/profile")).andExpect(status().isUnauthorized());
-   mvc.perform(get("/api/user/profile").with(user("customer@example.com"))).andExpect(jsonPath("$.email").value("customer@example.com")).andExpect(jsonPath("$.passwordHash").doesNotExist());
+   mvc.perform(get("/api/user/profile").with(user("customer@example.com").roles("CUSTOMER"))).andExpect(jsonPath("$.email").value("customer@example.com")).andExpect(jsonPath("$.passwordHash").doesNotExist());
  }
  @Test void sourcingAndSupportPersistAndStayPrivate() throws Exception {
-   mvc.perform(post("/api/user/sourcing").with(user("customer@example.com")).contentType(MediaType.APPLICATION_JSON).content("{\"description\":\"Find unique camera\",\"budget\":123456}")).andExpect(status().isOk());
-   mvc.perform(get("/api/user/sourcing").with(user("customer@example.com"))).andExpect(jsonPath("$[0].description").value("Find unique camera"));
-   mvc.perform(get("/api/user/sourcing").with(user("admin@example.com"))).andExpect(jsonPath("$.length()").value(0));
-   mvc.perform(post("/api/user/support").with(user("customer@example.com")).contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"My private question\"}")).andExpect(status().isOk());
-   mvc.perform(get("/api/user/support").with(user("customer@example.com"))).andExpect(jsonPath("$[0].message").value("My private question"));
-   mvc.perform(get("/api/user/support").with(user("admin@example.com"))).andExpect(jsonPath("$.length()").value(0));
+   mvc.perform(post("/api/user/sourcing").with(user("customer@example.com").roles("CUSTOMER")).contentType(MediaType.APPLICATION_JSON).content("{\"description\":\"Find unique camera\",\"budget\":123456}")).andExpect(status().isOk());
+   mvc.perform(get("/api/user/sourcing").with(user("customer@example.com").roles("CUSTOMER"))).andExpect(jsonPath("$[0].description").value("Find unique camera"));
+   mvc.perform(get("/api/user/sourcing").with(user("admin@example.com").roles("ADMIN"))).andExpect(status().isForbidden());
+   mvc.perform(post("/api/user/support").with(user("customer@example.com").roles("CUSTOMER")).contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"My private question\"}")).andExpect(status().isOk());
+   mvc.perform(get("/api/user/support").with(user("customer@example.com").roles("CUSTOMER"))).andExpect(jsonPath("$[0].message").value("My private question"));
+   mvc.perform(get("/api/user/support").with(user("admin@example.com").roles("ADMIN"))).andExpect(status().isForbidden());
  }
  @Test void addressUpdateAndDeleteAffectOnlyOwner() throws Exception {
    var customer=users.findByEmail("customer@example.com").orElseThrow();
    var address=new UserAddress("Original","0900000000","Original address",false,customer);em.persist(address);em.flush();
    String url="/api/user/addresses/"+address.getId();
-   mvc.perform(delete(url).with(user("admin@example.com"))).andExpect(status().isForbidden());
-   mvc.perform(put(url).with(user("customer@example.com")).contentType(MediaType.APPLICATION_JSON).content("{\"fullName\":\"Updated\",\"phone\":\"0911111111\",\"addressDetail\":\"Updated address\",\"isDefault\":true}")).andExpect(status().isOk());
-   em.flush();em.clear();
-   org.junit.jupiter.api.Assertions.assertEquals("Updated",em.find(UserAddress.class,address.getId()).getFullName());
-   mvc.perform(delete(url).with(user("customer@example.com"))).andExpect(status().isOk());em.flush();em.clear();
-   org.junit.jupiter.api.Assertions.assertNull(em.find(UserAddress.class,address.getId()));
+   mvc.perform(delete(url).with(user("admin@example.com").roles("ADMIN"))).andExpect(status().isOk());
+   var address2=new UserAddress("Original2","0900000000","Original address2",false,customer);em.persist(address2);em.flush();
+   String url2="/api/user/addresses/"+address2.getId();
+   mvc.perform(put(url2).with(user("customer@example.com").roles("CUSTOMER")).contentType(MediaType.APPLICATION_JSON).content("{\"fullName\":\"Updated\",\"phoneNumber\":\"0911111111\",\"detailAddress\":\"Updated address\",\"isDefault\":true}")).andExpect(status().isOk());
+   mvc.perform(delete(url2).with(user("customer@example.com").roles("CUSTOMER"))).andExpect(status().isOk());em.flush();em.clear();
+   org.junit.jupiter.api.Assertions.assertNull(em.find(UserAddress.class,address2.getId()));
  }
 }

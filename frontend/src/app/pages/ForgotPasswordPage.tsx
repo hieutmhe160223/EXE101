@@ -5,6 +5,14 @@ import { ShoppingCart, Mail, Lock, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import api from "../utils/api"; 
 
+function getRequestErrorMessage(err: any, fallback: string) {
+  const responseMessage = err.response?.data?.message ||
+    (typeof err.response?.data === "string" ? err.response.data : null);
+  if (responseMessage) return responseMessage;
+  if (!err.response) return "Không thể kết nối đến máy chủ. Vui lòng khởi động backend và thử lại.";
+  return fallback;
+}
+
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<"email" | "otp" | "password">("email");
@@ -56,8 +64,7 @@ export function ForgotPasswordPage() {
         navigate("/login");
       }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.response?.data || "Đã xảy ra lỗi hệ thống. Vui lòng thử lại!";
-      setError(errorMsg);
+      setError(getRequestErrorMessage(err, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại!"));
     } finally {
       setLoading(false);
     }
@@ -70,7 +77,7 @@ export function ForgotPasswordPage() {
       await api.post("/auth/forgot-password", { email: formData.email });
       setMessage("Một mã OTP mới đã được gửi lại vào email của bạn.");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Không thể gửi lại mã OTP.");
+      setError(getRequestErrorMessage(err, "Không thể gửi lại mã OTP."));
     }
   };
 

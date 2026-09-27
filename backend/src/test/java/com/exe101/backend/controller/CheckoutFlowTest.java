@@ -33,7 +33,7 @@ class CheckoutFlowTest {
     @BeforeEach void prepare() {
         customer=users.findByEmail("customer@example.com").orElseThrow();
         admin=users.findByEmail("admin@example.com").orElseThrow();
-        other=users.save(new UserAccount(UUID.randomUUID()+"@example.com","unused","Other","CUSTOMER"));
+        other=users.save(new UserAccount(UUID.randomUUID()+"@example.com","unused","Other",Role.CUSTOMER));
         auth="Bearer "+tokens.issue(customer); otherAuth="Bearer "+tokens.issue(other); adminAuth="Bearer "+tokens.issue(admin);
         quote=new ProductQuote(); quote.setMarketplace(Marketplace.XIANYU); quote.setSourceProductId(UUID.randomUUID().toString());
         quote.setSourceUrl("https://www.goofish.com/item?id=12345"); quote.setOriginalName("sample");

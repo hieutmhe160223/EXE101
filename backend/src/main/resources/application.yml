@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/exe101_backend?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD:D0@nchuy}
     driver-class-name: ${DB_DRIVER:com.mysql.cj.jdbc.Driver}
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
@@ -22,10 +22,10 @@ spring:
       port: 6379
 
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: "yufiz.system@gmail.com"
-    password: "grqhmqcqcofweukx"
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:yufiz.system@gmail.com}
+    password: ${MAIL_PASSWORD:grqhmqcqcofweukx}
     properties:
       mail:
         smtp:
@@ -34,7 +34,7 @@ spring:
             enable: true
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: 8080
 
 app:
   exchange-rate:
@@ -65,12 +65,12 @@ sepay:
   gateway: ${SEPAY_GATEWAY:MBBank}
 
 apify:
-  token: ${APIFY_TOKEN:}
+  token:
   base-url: https://api.apify.com/v2
   actor-item-detail: zen-studio~goofish-xianyu-item-detail-scraper
 
 rapidapi:
-  key: ${RAPIDAPI_KEY:}
+  key: 
   translate:
     host: google-api31.p.rapidapi.com
     url: https://google-api31.p.rapidapi.com/gtranslate
