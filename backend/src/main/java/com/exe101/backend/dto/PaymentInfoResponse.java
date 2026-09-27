@@ -1,7 +1,6 @@
 package com.exe101.backend.dto;
 
 import com.exe101.backend.model.PaymentMethod;
-
 import java.math.BigDecimal;
 
 public record PaymentInfoResponse(
@@ -12,7 +11,14 @@ public record PaymentInfoResponse(
         String accountNumber,
         String accountName,
         String transferContent,
-        String qrUrl,
+        String qrImageUrl,
         String paymentUrl
 ) {
+    public BigDecimal amount() {
+        return amountVnd;
+    }
+
+    public String qrUrl() {
+        return qrImageUrl;
+    }
 }

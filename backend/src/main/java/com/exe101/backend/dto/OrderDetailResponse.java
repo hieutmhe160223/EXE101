@@ -15,12 +15,15 @@ public record OrderDetailResponse(
         BigDecimal depositAmountVnd,
         BigDecimal finalAmountVnd,
         BigDecimal paidAmountVnd,
+        BigDecimal refundedAmountVnd,
         String shippingAddress,
         String customerNote,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         List<OrderTimelineItemResponse> timeline,
         List<InspectionMediaResponse> inspectionMedia,
-        List<ReturnRequestResponse> returnRequests
+        List<ReturnRequestResponse> returnRequests,
+        String productName, String productImageUrl, String sourceUrl, String variantSelected,
+        String costSnapshotJson
 ) {
 }

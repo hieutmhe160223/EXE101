@@ -36,4 +36,5 @@ public class SupportMessage extends AuditableEntity {
 
     protected SupportMessage() {
     }
+    public SupportMessage(SupportTicket ticket,UserAccount sender,String message) {this.ticket=ticket;this.sender=sender;this.message=message;}
 }

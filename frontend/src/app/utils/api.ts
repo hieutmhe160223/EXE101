@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080/api",
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api",
+  timeout: 30000, // 30 seconds - default timeout
   headers: {
     "Content-Type": "application/json",
   },
@@ -10,7 +10,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,10 +24,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response && error.response.status === 401 && !error.config?.url?.includes("/auth/login")) {
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      window.dispatchEvent(new Event("authChange"));
     }
     return Promise.reject(error);
   }

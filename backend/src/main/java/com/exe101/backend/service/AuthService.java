@@ -25,6 +25,7 @@ public class AuthService {
     private final UserAccountRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final SessionTokenService sessionTokens;
     private final StringRedisTemplate redisTemplate;
     private final JavaMailSender mailSender;
 
@@ -36,20 +37,19 @@ public class AuthService {
             throw new BadCredentialsException("Invalid email or password");
         }
 
-        // --- BỔ SUNG: KIỂM TRA TRẠNG THÁI TÀI KHOẢN KHI ĐĂNG NHẬP ---
         if (user.getStatus() == AccountStatus.LOCKED) {
             throw new BadCredentialsException("Tài khoản của bạn đã bị tạm khóa!");
         }
         if (user.getStatus() == AccountStatus.DISABLED) {
             throw new BadCredentialsException("Tài khoản của bạn đã bị vô hiệu hóa!");
         }
-        // -------------------------------------------------------------
 
         String roleName = user.getRole().name();
-
         String accessToken = jwtService.generateToken(user.getEmail(), roleName);
+        sessionTokens.issue(user);
 
         return new LoginResponse(
+                user.getId(),
                 accessToken,
                 "Bearer",
                 user.getId(),
@@ -76,8 +76,7 @@ public class AuthService {
                 Role.CUSTOMER
         );
         user.setPhoneNumber(request.phoneNumber());
-        // Giả sử trạng thái mặc định khi tạo mới là ACTIVE
-        user.setStatus(AccountStatus.ACTIVE); 
+        user.setStatus(AccountStatus.ACTIVE);
         userRepository.save(user);
     }
 

@@ -1,55 +1,29 @@
+import { useEffect } from "react";
+import { Link, useSearchParams } from "react-router";
+import { CheckCircle, Clock } from "lucide-react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { CheckCircle, Package, Home } from "lucide-react";
-import { Link } from "react-router";
+import { useOrder } from "../utils/useOrder";
+import { money, orderStatus } from "../utils/commerce";
 
 export function OrderSuccessPage() {
-  const orderId = "YF" + Date.now().toString().slice(-8);
-
-  return (
-    <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-      <div className="w-24 h-24 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
-        <CheckCircle className="w-16 h-16 text-accent" />
-      </div>
-
-      <h1 className="text-3xl font-bold mb-4">Đặt hàng thành công!</h1>
-      <p className="text-lg text-muted-foreground mb-8">
-        Cảm ơn bạn đã tin tưởng Yufiz. Đơn hàng của bạn đang được xử lý.
-      </p>
-
-      <Card className="mb-8">
-        <div className="space-y-4">
-          <div>
-            <div className="text-sm text-muted-foreground mb-1">Mã đơn hàng</div>
-            <div className="text-2xl font-bold text-primary">{orderId}</div>
-          </div>
-          <div className="border-t pt-4">
-            <div className="text-sm text-muted-foreground mb-1">Số tiền đã thanh toán</div>
-            <div className="text-xl font-semibold">288,943₫</div>
-          </div>
-          <div className="border-t pt-4">
-            <div className="text-sm text-muted-foreground mb-2">Bước tiếp theo</div>
-            <p className="text-sm">
-              Chúng tôi sẽ mua hàng từ người bán trong vòng 1-2 ngày. Bạn sẽ nhận được thông báo khi hàng về kho Trung Quốc.
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <Link to={`/orders/${orderId}`}>
-          <Button size="lg">
-            <Package className="w-5 h-5 mr-2" />
-            Theo dõi đơn hàng
-          </Button>
-        </Link>
-        <Link to="/">
-          <Button variant="outline" size="lg">
-            <Home className="w-5 h-5 mr-2" />
-            Về trang chủ
-          </Button>
-        </Link>
-      </div>
-    </div>
-  );
+  const [params] = useSearchParams(); const id = params.get("orderId");
+  const final = params.get("phase") === "final";
+  const { order, error, refresh } = useOrder(id);
+  const paid = !!order && order.depositAmountVnd > 0 && order.paidAmountVnd >= (final ? order.totalAmountVnd : order.depositAmountVnd);
+  useEffect(() => {
+    if (!order || paid || order.status !== (final ? "WAITING_FINAL_PAYMENT" : "WAITING_DEPOSIT")) return;
+    const timer = window.setInterval(refresh, 5000); return () => window.clearInterval(timer);
+  }, [order?.status, final, paid, refresh]);
+  return <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+    {error ? <Card><p role="alert">{error}</p><Link to="/orders" className="text-primary">Xem đơn hàng</Link></Card> : !order ? <p>Đang kiểm tra trạng thái đơn...</p> : <>
+      {paid ? <CheckCircle className="w-20 h-20 text-accent mx-auto mb-6" /> : <Clock className="w-20 h-20 text-primary mx-auto mb-6" />}
+      <h1 className="text-3xl font-bold mb-4">{paid ? (final ? "Đã thanh toán đủ!" : "Đã nhận tiền cọc!") : "Đơn hàng đã được tạo"}</h1>
+      <p className="text-muted-foreground mb-6">{paid ? (final ? "Đã xác nhận đủ tiền. Bạn có thể theo dõi bước giao hàng trong đơn." : "Đơn hàng của bạn đã được xác nhận và chờ xử lý mua hàng.") : order.status === "WAITING_DEPOSIT" ? "Hệ thống chưa xác nhận nhận đủ tiền cọc. Nếu đã thanh toán, vui lòng chờ đối soát." : orderStatus(order.status)}</p>
+      <Card className="space-y-4 mb-6"><p>Mã đơn: <strong>{order.orderCode}</strong></p><p>Trạng thái: {orderStatus(order.status)}</p><p>Số tiền đã xác nhận: <strong>{money(order.paidAmountVnd)}</strong></p><p>Còn phải thanh toán: {money(Math.max(0, order.totalAmountVnd - order.paidAmountVnd))}</p></Card>
+      <div className="flex flex-wrap justify-center gap-3"><Link to={`/orders/${order.id}`}><Button>Theo dõi đơn</Button></Link>
+        {!paid && order.status === (final ? "WAITING_FINAL_PAYMENT" : "WAITING_DEPOSIT") && <Link to={final ? `/orders/${order.id}/final-payment` : `/order/payment?orderId=${order.id}`}><Button variant="outline">Xem thanh toán</Button></Link>}
+        <Button variant="ghost" onClick={refresh}>Cập nhật trạng thái</Button></div>
+    </>}
+  </div>;
 }

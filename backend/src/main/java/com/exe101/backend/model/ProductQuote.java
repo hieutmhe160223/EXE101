@@ -12,11 +12,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "product_quotes")
+@Getter
+@Setter
 public class ProductQuote extends AuditableEntity {
 
     @Id
@@ -45,6 +49,25 @@ public class ProductQuote extends AuditableEntity {
 
     @Column(length = 1000)
     private String imageUrl;
+
+    @jakarta.persistence.ElementCollection(fetch = FetchType.EAGER)
+    @jakarta.persistence.OrderColumn(name = "image_position")
+    @Column(length = 2000)
+    private java.util.List<String> imageUrls = new java.util.ArrayList<>();
+
+    @jakarta.persistence.ElementCollection(fetch = FetchType.EAGER)
+    @jakarta.persistence.OrderColumn(name = "variant_position")
+    private java.util.List<ProductVariant> variants = new java.util.ArrayList<>();
+    @Column(precision = 5, scale = 4) private BigDecimal serviceFeePercent;
+    private Boolean sourcePriceVerified;
+    private Integer shopReviewCount;
+    private Boolean translationComplete;
+    private java.time.LocalDateTime exchangeRateFetchedAt;
+    private java.time.LocalDateTime expiresAt;
+    @Column(precision = 15, scale = 2)
+    private BigDecimal insuranceFeeVnd;
+    @Column(precision = 5, scale = 4)
+    private BigDecimal depositPercent;
 
     @Lob
     private String translatedDescription;
@@ -80,6 +103,6 @@ public class ProductQuote extends AuditableEntity {
     @Column(precision = 15, scale = 2)
     private BigDecimal estimatedTotalVnd;
 
-    protected ProductQuote() {
+    public ProductQuote() {
     }
 }

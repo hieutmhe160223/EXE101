@@ -15,7 +15,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "purchase_orders")
+@Table(name = "purchase_orders", uniqueConstraints = @jakarta.persistence.UniqueConstraint(columnNames = {"customer_id", "request_key"}))
 public class PurchaseOrder extends AuditableEntity {
 
     @Id
@@ -52,11 +52,37 @@ public class PurchaseOrder extends AuditableEntity {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal paidAmountVnd = BigDecimal.ZERO;
 
+    @Column(precision = 15, scale = 2)
+    private BigDecimal refundedAmountVnd = BigDecimal.ZERO;
+
     @Column(length = 500)
     private String shippingAddress;
 
     @Column(length = 1000)
     private String customerNote;
+
+    @Column(name = "request_key", length = 80) private String requestKey;
+    public String getRequestKey() { return requestKey; }
+    public void setRequestKey(String value) { requestKey = value; }
+    @Column(length = 300) private String productName;
+    @Column(length = 2000) private String productImageUrl;
+    @Column(length = 2000) private String sourceUrl;
+    @Column(length = 500) private String variantSelected;
+    @jakarta.persistence.Lob private String costSnapshotJson;
+
+    public void setProductSnapshot(ProductQuote quote, String variant) {
+        productQuote = quote; productName = quote.getTranslatedName(); productImageUrl = quote.getImageUrl();
+        sourceUrl = quote.getSourceUrl(); variantSelected = variant;
+    }
+    public void setCostSnapshot(com.exe101.backend.dto.PricePreviewResponse price) {
+        try { costSnapshotJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(price); }
+        catch (com.fasterxml.jackson.core.JsonProcessingException e) { throw new IllegalStateException("Không lưu được bảng giá", e); }
+    }
+    public String getProductName() { return productName; }
+    public String getProductImageUrl() { return productImageUrl; }
+    public String getSourceUrl() { return sourceUrl; }
+    public String getVariantSelected() { return variantSelected; }
+    public String getCostSnapshotJson() { return costSnapshotJson; }
 
     protected PurchaseOrder() {
     }
@@ -121,6 +147,10 @@ public class PurchaseOrder extends AuditableEntity {
         return paidAmountVnd;
     }
 
+    public BigDecimal getRefundedAmountVnd() {
+        return refundedAmountVnd == null ? BigDecimal.ZERO : refundedAmountVnd;
+    }
+
     public String getShippingAddress() {
         return shippingAddress;
     }
@@ -135,5 +165,12 @@ public class PurchaseOrder extends AuditableEntity {
 
     public void addPaidAmount(BigDecimal amountVnd) {
         this.paidAmountVnd = this.paidAmountVnd.add(amountVnd);
+    }
+
+    public void addRefundedAmount(BigDecimal amountVnd) {
+        if(amountVnd==null||amountVnd.signum()<=0)throw new IllegalArgumentException("Số tiền hoàn không hợp lệ");
+        BigDecimal next=getRefundedAmountVnd().add(amountVnd);
+        if(next.compareTo(paidAmountVnd)>0)throw new IllegalStateException("Tổng tiền hoàn vượt số tiền đã thanh toán");
+        refundedAmountVnd=next;
     }
 }

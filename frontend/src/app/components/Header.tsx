@@ -12,8 +12,7 @@ export const Header: React.FC = () => {
 
   React.useEffect(() => {
     const checkAuth = () => {
-      // Sửa key từ "token" -> "accessToken"
-      const token = localStorage.getItem("accessToken");
+      const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
       setIsLoggedIn(!!token);
 
       const fullName = localStorage.getItem("userFullName") || "Tài khoản";
@@ -34,6 +33,7 @@ export const Header: React.FC = () => {
   const handleLogout = () => {
     localStorage.clear(); 
     setIsLoggedIn(false); 
+    window.dispatchEvent(new Event("authChange"));
     alert("Đã đăng xuất tài khoản!");
     navigate("/");
   };
@@ -52,7 +52,7 @@ export const Header: React.FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link to="/product-input" className="text-gray-700 hover:text-[#FF6A00] transition-colors">
+            <Link to="/order/new" className="text-gray-700 hover:text-[#FF6A00] transition-colors">
               Đặt hàng
             </Link>
             
@@ -74,18 +74,14 @@ export const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             {isLoggedIn ? (
               <>
-                <button onClick={() => navigate('/wishlist')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors relative">
+                <button onClick={() => navigate('/wishlist')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors relative" title="Yêu thích">
                   <Heart className="w-6 h-6" />
-                  <span className="absolute -top-1 -right-1 bg-[#FF6A00] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    3
-                  </span>
                 </button>
-                <button onClick={() => navigate('/wallet')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors">
+                <button onClick={() => navigate('/wallet')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors" title="Ví Yufiz">
                   <Wallet className="w-6 h-6" />
                 </button>
-                <button onClick={() => navigate('/notifications')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors relative">
+                <button onClick={() => navigate('/notifications')} className="p-2 text-gray-600 hover:text-[#FF6A00] transition-colors relative" title="Thông báo">
                   <Bell className="w-6 h-6" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
 
                 <div className="flex items-center space-x-2">
@@ -135,7 +131,7 @@ export const Header: React.FC = () => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 space-y-1">
-            <Link to="/product-input" className="block py-2 text-gray-700 hover:text-[#FF6A00]">
+            <Link to="/order/new" className="block py-2 text-gray-700 hover:text-[#FF6A00]">
               Đặt hàng
             </Link>
             

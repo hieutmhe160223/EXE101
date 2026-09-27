@@ -1,86 +1,100 @@
-// package com.exe101.backend.controller;
+package com.exe101.backend.controller;
 
-// import com.exe101.backend.dto.PaymentInfoResponse;
-// import com.exe101.backend.model.PaymentMethod;
-// import com.exe101.backend.model.PurchaseOrder;
-// import com.exe101.backend.repository.PurchaseOrderRepository;
-// import com.exe101.backend.service.MoMoService;
-// import jakarta.persistence.EntityNotFoundException;
-// import org.springframework.beans.factory.annotation.Value;
-// import org.springframework.http.ResponseEntity;
-// import org.springframework.web.bind.annotation.*;
+import com.exe101.backend.model.PaymentMethod;
+import com.exe101.backend.model.PaymentType;
+import com.exe101.backend.service.DepositPaymentService;
+import com.exe101.backend.service.PaymentGateway;
+import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-// import java.math.BigDecimal;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
-// @RestController
-// @RequestMapping("/api/payments")
-// public class PaymentController {
+@RestController
+@RequestMapping("/api")
+public class PaymentController {
 
-//     @Value("${vietqr.bank-code}")
-//     private String bankCode;
+    private final DepositPaymentService payments;
+    private final PaymentGateway gateway;
 
-//     @Value("${vietqr.account-number}")
-//     private String accountNumber;
+    public PaymentController(DepositPaymentService payments, PaymentGateway gateway) {
+        this.payments = payments;
+        this.gateway = gateway;
+    }
 
-//     @Value("${vietqr.account-name}")
-//     private String accountName;
+    public record CreatePayment(@NotNull PaymentMethod method) {}
+    public record CancelPayment(@Size(max = 500) String reason) {}
+    public record ConfirmBank(
+            @NotNull @DecimalMin("1") BigDecimal amount,
+            @NotBlank @Size(max = 100) String transactionCode,
+            @NotBlank @Size(max = 700) String note
+    ) {}
 
-//     private final PurchaseOrderRepository purchaseOrderRepository;
-//     private final MoMoService momoService;
+    @GetMapping("/payments/methods")
+    public List<Map<String, Object>> methods() {
+        return List.of(PaymentMethod.WALLET, PaymentMethod.BANK_TRANSFER, PaymentMethod.MOMO, PaymentMethod.ZALOPAY).stream()
+                .map(method -> Map.<String, Object>of("method", method, "available", method == PaymentMethod.WALLET || gateway.available(method)))
+                .toList();
+    }
 
-//     public PaymentController(
-//             PurchaseOrderRepository purchaseOrderRepository,
-//             MoMoService momoService
-//     ) {
-//         this.purchaseOrderRepository = purchaseOrderRepository;
-//         this.momoService = momoService;
-//     }
+    @PostMapping("/orders/{id}/deposit-payments")
+    public Object create(@PathVariable Long id, @Valid @RequestBody CreatePayment request) {
+        return payments.create(id, request.method());
+    }
 
-//     @GetMapping("/orders/{orderId}/payment-info")
-//     public ResponseEntity<PaymentInfoResponse> getPaymentInfo(
-//             @PathVariable Long orderId,
-//             @RequestParam PaymentMethod method
-//     ) throws Exception {
-//         PurchaseOrder order = purchaseOrderRepository.findById(orderId)
-//                 .orElseThrow(() -> new EntityNotFoundException("Order not found"));
+    @PostMapping("/payments/{id}/cancel")
+    public Object cancel(@PathVariable Long id, @Valid @RequestBody CancelPayment request) {
+        return payments.cancel(id, request.reason());
+    }
 
-//         BigDecimal amount = order.getDepositAmountVnd();
-//         String orderCode = order.getOrderCode();
+    @GetMapping("/orders/{id}/deposit-payments/latest")
+    public ResponseEntity<?> latest(@PathVariable Long id) {
+        var result = payments.latest(id);
+        return result == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(result);
+    }
 
-//         return switch (method) {
-//             case BANK_TRANSFER -> ResponseEntity.ok(buildBankTransferInfo(orderCode, amount));
-//             case MOMO -> ResponseEntity.ok(buildMomoInfo(orderCode, amount));
-//             default -> throw new IllegalArgumentException("Payment method not supported yet: " + method);
-//         };
-//     }
+    @PostMapping("/payments/momo/webhook")
+    public ResponseEntity<Void> momo(@RequestBody JsonNode body) {
+        payments.settle(PaymentMethod.MOMO, gateway.verifyMomo(body));
+        return ResponseEntity.noContent().build();
+    }
 
-//     private PaymentInfoResponse buildBankTransferInfo(String orderCode, BigDecimal amount) {
-//         String qrUrl = "https://img.vietqr.io/image/"
-//                 + bankCode + "-" + accountNumber
-//                 + "-compact.png?amount=" + amount.longValue()
-//                 + "&addInfo=" + orderCode;
+    @PostMapping("/orders/{id}/final-payments")
+    public Object createFinal(@PathVariable Long id, @Valid @RequestBody CreatePayment request) {
+        return payments.create(id, request.method(), PaymentType.FINAL_30);
+    }
 
-//         return new PaymentInfoResponse(
-//                 PaymentMethod.BANK_TRANSFER,
-//                 amount,
-//                 orderCode,
-//                 "Vietcombank",
-//                 accountNumber,
-//                 accountName,
-//                 orderCode,
-//                 qrUrl,
-//                 null
-//         );
-//     }
+    @GetMapping("/orders/{id}/final-payments/latest")
+    public ResponseEntity<?> latestFinal(@PathVariable Long id) {
+        var result = payments.latest(id, PaymentType.FINAL_30);
+        return result == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(result);
+    }
 
-//     private PaymentInfoResponse buildMomoInfo(String orderCode, BigDecimal amount) throws Exception {
-//         String payUrl = momoService.createPaymentUrl(orderCode, amount);
-//         return new PaymentInfoResponse(
-//                 PaymentMethod.MOMO,
-//                 amount,
-//                 orderCode,
-//                 null, null, null, null, null,
-//                 payUrl
-//         );
-//     }
-// }
+    @PostMapping("/payments/zalopay/webhook")
+    public Map<String, Object> zalo(@RequestBody JsonNode body) {
+        payments.settle(PaymentMethod.ZALOPAY, gateway.verifyZalo(body));
+        return Map.of("return_code", 1, "return_message", "success");
+    }
+
+    @GetMapping("/admin/payments/pending-bank")
+    public Object pendingBank() {
+        return payments.pendingBank();
+    }
+
+    @PostMapping("/payments/{id}/reconcile")
+    public Object reconcile(@PathVariable Long id) {
+        return payments.reconcile(id);
+    }
+
+    @PostMapping("/admin/payments/{id}/confirm-bank")
+    public Object confirmBank(@PathVariable Long id, @Valid @RequestBody ConfirmBank request) {
+        return payments.confirmBank(id, request.amount(), request.transactionCode().trim(), request.note());
+    }
+}

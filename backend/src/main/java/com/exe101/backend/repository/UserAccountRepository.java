@@ -3,17 +3,24 @@ package com.exe101.backend.repository;
 import com.exe101.backend.dto.AdminDTO;
 import com.exe101.backend.model.AccountStatus;
 import com.exe101.backend.model.UserAccount;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface UserAccountRepository extends JpaRepository<UserAccount, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM UserAccount u WHERE u.id = :id")
+    Optional<UserAccount> lockById(@Param("id") Long id);
 
     Optional<UserAccount> findByEmail(String email);
 
@@ -24,7 +31,7 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
            "(SELECT COUNT(p) FROM PurchaseOrder p WHERE p.customer.id = u.id), " +
            "COALESCE(u.walletBalance, 0), u.status) " +
            "FROM UserAccount u")
-    java.util.List<AdminDTO.CustomerResponse> findAllCustomersWithStats();
+    List<AdminDTO.CustomerResponse> findAllCustomersWithStats();
 
     @Query("SELECT new com.exe101.backend.dto.AdminDTO$CustomerResponse(" +
            "u.id, u.fullName, u.email, u.phoneNumber, " +

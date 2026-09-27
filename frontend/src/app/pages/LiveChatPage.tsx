@@ -1,65 +1,11 @@
+import { useState } from "react";
+import { useRemote,RemoteState } from "../components/RemoteData";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { Send, Paperclip, Image as ImageIcon } from "lucide-react";
-import { useState } from "react";
-
-export function LiveChatPage() {
-  const [message, setMessage] = useState("");
-
-  const messages = [
-    { id: 1, sender: "support", text: "Xin chào! Tôi có thể giúp gì cho bạn?", time: "10:30" },
-    { id: 2, sender: "user", text: "Tôi muốn hỏi về tỷ giá hôm nay", time: "10:31" },
-    { id: 3, sender: "support", text: "Tỷ giá hôm nay là 1¥ = 3,650₫ ạ", time: "10:31" },
-  ];
-
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Hỗ trợ trực tuyến</h1>
-
-      <Card className="h-[600px] flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[70%] rounded-xl px-4 py-2 ${
-                  msg.sender === "user"
-                    ? "bg-primary text-white"
-                    : "bg-muted"
-                }`}
-              >
-                <p>{msg.text}</p>
-                <p className={`text-xs mt-1 ${msg.sender === "user" ? "text-white/70" : "text-muted-foreground"}`}>
-                  {msg.time}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="border-t p-4">
-          <div className="flex gap-2">
-            <button className="p-2 hover:bg-muted rounded-lg">
-              <Paperclip className="w-5 h-5" />
-            </button>
-            <button className="p-2 hover:bg-muted rounded-lg">
-              <ImageIcon className="w-5 h-5" />
-            </button>
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Nhập tin nhắn..."
-              className="flex-1 px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <Button>
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
+import api from "../utils/api";
+import { errorMessage } from "../utils/commerce";
+export function LiveChatPage(){const s=useRemote<any[]>("/user/support");const [message,setMessage]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(false);
+const send=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);setError("");try{await api.post("/user/support",{message});setMessage("");await s.refresh();}catch(e){setError(errorMessage(e));}finally{setBusy(false);}};
+return <div className="max-w-4xl mx-auto p-6"><h1 className="text-3xl font-bold mb-6">Tin nhắn hỗ trợ</h1><Button variant="outline" onClick={s.refresh}>Tải tin nhắn mới</Button><RemoteState state={s}>
+{!s.data?.length?<p className="py-6">Chưa có tin nhắn.</p>:[...(s.data??[])].reverse().map(m=><Card className="my-3" key={m.id}><strong>{m.sender}</strong><p className="whitespace-pre-wrap">{m.message}</p><small>{m.createdAt}</small></Card>)}</RemoteState>
+<form onSubmit={send} className="mt-6 space-y-3"><label className="block">Nội dung<textarea required maxLength={5000} className="border p-3 w-full" value={message} onChange={e=>setMessage(e.target.value)}/></label>{error&&<p role="alert">{error}</p>}<Button type="submit" disabled={busy}>Gửi tin nhắn</Button></form></div>;}

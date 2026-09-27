@@ -21,7 +21,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthFilter; 
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final BearerTokenFilter bearerTokenFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -30,18 +31,27 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
+                        .requestMatchers("/api/payments/momo/webhook", "/api/payments/zalopay/webhook", "/api/wallet/sepay/webhook").permitAll()
+                        .requestMatchers("/api/notifications/stream").permitAll()
+                        .requestMatchers("/api/quotes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/settings").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/addresses").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/addresses").permitAll()
                         .requestMatchers("/api/user/addresses/**").permitAll()
                         .requestMatchers("/api/user/banks", "/api/user/banks/**").permitAll()
-                        .requestMatchers("/api/admin/**", "/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**", "/api/v1/admin/**", "/api/orders/*/vietnam-warehouse").hasRole("ADMIN")
                         .requestMatchers("/api/user/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(e -> e.authenticationEntryPoint((req, res, ex) -> {
+                    res.setStatus(401);
+                    res.setContentType("application/json;charset=UTF-8");
+                    res.getWriter().write("{\"message\":\"Vui lòng đăng nhập lại\"}");
+                }))
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(form -> form.disable())
+                .addFilterBefore(bearerTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -49,9 +59,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "Idempotency-Key"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

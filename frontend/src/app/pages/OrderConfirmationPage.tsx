@@ -1,136 +1,55 @@
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams, useLocation } from "react-router";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { MapPin, Package, CreditCard, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router";
-import { useEffect, useState } from "react";
+import { CostSummary } from "../components/CostSummary";
 import api from "../utils/api";
-
-interface SystemSettings {
-  exchangeRate: number;
-  serviceFeeMinPercent: number;
-  domesticShippingCny: number;
-  internationalShippingVnd: number;
-}
+import { getUserId, isLoggedIn } from "../utils/auth";
+import { Quote, Price, errorMessage } from "../utils/commerce";
 
 export function OrderConfirmationPage() {
-  const navigate = useNavigate();
-  const [settings, setSettings] = useState<SystemSettings | null>(null);
-
+  const [params] = useSearchParams(); const location = useLocation(); const navigate = useNavigate();
+  const quoteId = Number(params.get("quoteId") || location.state?.quoteId);
+  const quantity = Number(params.get("quantity") || location.state?.quantity || 1);
+  const variant = params.get("variant") || "";
+  const [quote, setQuote] = useState<Quote | null>(null); const [price, setPrice] = useState<Price | null>(null);
+  const [address, setAddress] = useState(""); const [note, setNote] = useState("");
+  const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
+  const [requestKey] = useState(() => {
+    const key = "checkout:" + quoteId + ":" + quantity + ":" + variant;
+    const value = sessionStorage.getItem(key) || crypto.randomUUID();
+    sessionStorage.setItem(key, value); return value;
+  });
+  const back = `/order/confirm?quoteId=${quoteId}&quantity=${quantity}&variant=${encodeURIComponent(variant)}`;
   useEffect(() => {
-    api.get<SystemSettings>("/settings").then((response) => setSettings(response.data)).catch(() => undefined);
-  }, []);
-
-  const exchangeRate = settings?.exchangeRate ?? 3650;
-  const domesticShipping = settings?.domesticShippingCny ?? 10;
-  const serviceFeePercent = settings?.serviceFeeMinPercent ?? 5;
-  const internationalShipping = settings?.internationalShippingVnd ?? 25000;
-  const totalCny = 89 + domesticShipping + (89 * serviceFeePercent / 100);
-  const totalAmount = Math.round(totalCny * exchangeRate + internationalShipping + 10000);
-
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Xác nhận đơn hàng</h1>
-
-      <div className="space-y-6">
-        {/* Shipping Address */}
-        <Card>
-          <div className="flex items-start justify-between mb-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
-              Địa chỉ giao hàng
-            </h2>
-            <Button variant="ghost" size="sm">Thay đổi</Button>
-          </div>
-          <div>
-            <div className="font-semibold mb-1">Nguyễn Văn A</div>
-            <div className="text-muted-foreground">0912345678</div>
-            <div className="text-muted-foreground">
-              123 Đường ABC, Phường XYZ, Quận 1, TP. Hồ Chí Minh
-            </div>
-          </div>
+    if (!isLoggedIn() || !Number.isInteger(quoteId) || quoteId <= 0) return;
+    let active = true;
+    Promise.all([api.get<Quote>(`/quotes/${quoteId}`), api.get<Price>(`/quotes/${quoteId}/price-preview`, { params: { quantity, variant: variant || undefined } })])
+      .then(([q,p]) => { if(active) { setQuote(q.data); setPrice(p.data); } }).catch(e => { if(active) setError(errorMessage(e)); });
+    return () => { active = false; };
+  }, [quoteId, quantity, variant]);
+  if (!isLoggedIn()) return <div className="max-w-xl mx-auto p-8"><Card><p className="mb-4">Vui lòng đăng nhập để đặt hàng.</p><Link to={`/login?next=${encodeURIComponent(back)}`}><Button>Đăng nhập</Button></Link></Card></div>;
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault(); if (busy || !price || !quote) return;
+    setBusy(true); setError("");
+    try {
+      const response = await api.post("/orders", { customerId: getUserId(), productQuoteId: quoteId, quantity, variantSelected: variant || null, shippingAddress: address.trim(), customerNote: note.trim(), requestKey, expectedTotalVnd: price.grandTotalVnd });
+      sessionStorage.removeItem("checkout:" + quoteId + ":" + quantity + ":" + variant);
+      navigate(`/order/payment?orderId=${response.data.orderId}`, { replace: true });
+    } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
+  };
+  return <div className="max-w-4xl mx-auto px-4 py-8">
+    <h1 className="text-3xl font-bold mb-6">Xác nhận đơn hàng</h1>
+    {error && <p role="alert" className="text-red-700 mb-4">{error}</p>}
+    {!quote || !price ? <p>{error ? "Không thể tải báo giá. Vui lòng quay lại sản phẩm." : "Đang tải báo giá..."}</p> :
+      <form onSubmit={submit} className="space-y-5">
+        <Card><h2 className="font-semibold mb-3">{quote.nameVi}</h2><p>Số lượng: {quantity}</p>{variant && <p>Phân loại: {quote.variants.find(v => v.variantId === variant)?.label}</p>}<Link className="text-primary" to={`/product/${quoteId}`}>Quay lại sản phẩm</Link></Card>
+        <Card><label className="block font-semibold mb-2" htmlFor="address">Địa chỉ giao hàng</label>
+          <textarea id="address" required maxLength={500} value={address} onChange={e => setAddress(e.target.value)} rows={3} className="w-full border rounded-lg p-3" placeholder="Tên người nhận, số điện thoại, số nhà, đường, phường/xã, tỉnh/thành" disabled={busy} />
+          <label className="block mt-3 mb-2" htmlFor="note">Ghi chú (tùy chọn)</label><textarea id="note" maxLength={1000} value={note} onChange={e => setNote(e.target.value)} className="w-full border rounded-lg p-3" disabled={busy} />
         </Card>
-
-        {/* Product Summary */}
-        <Card>
-          <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
-            <Package className="w-5 h-5" />
-            Sản phẩm
-          </h2>
-          <div className="flex gap-4">
-            <div className="w-24 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-              <img
-                src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200"
-                alt="Product"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold mb-1">Áo thun nam nữ unisex mùa hè</h3>
-              <p className="text-sm text-muted-foreground mb-2">Màu: 红色-M</p>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Số lượng: 1</span>
-                <span className="font-semibold">¥89</span>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Cost Summary */}
-        <Card>
-          <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
-            <CreditCard className="w-5 h-5" />
-            Chi phí
-          </h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Giá sản phẩm</span>
-              <span>¥89</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Phí vận chuyển nội địa TQ</span>
-              <span>¥{domesticShipping}</span>
-            </div>
-            <div className="flex justify-between">
-                <span className="text-muted-foreground">Phí dịch vụ ({serviceFeePercent}%)</span>
-              <span>¥{(89 * serviceFeePercent / 100).toFixed(1)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Phí vận chuyển quốc tế</span>
-              <span>{internationalShipping.toLocaleString("vi-VN")}₫</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Bảo hiểm</span>
-              <span>10,000₫</span>
-            </div>
-            <div className="border-t pt-3 flex justify-between items-center">
-              <span className="font-semibold text-lg">Tổng cộng</span>
-              <span className="text-2xl font-bold text-primary">{totalAmount.toLocaleString("vi-VN")}₫</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Deposit Info */}
-        <Card className="bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
-          <h3 className="font-semibold mb-2">💰 Thanh toán đặt cọc</h3>
-          <p className="text-sm text-muted-foreground mb-3">
-            Bạn cần thanh toán 70% giá trị đơn hàng để xác nhận. Số tiền còn lại sẽ được thanh toán sau khi kiểm hàng tại kho Trung Quốc.
-          </p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm text-muted-foreground">Đặt cọc:</span>
-            <span className="text-2xl font-bold text-primary">{Math.round(totalAmount * 0.7).toLocaleString("vi-VN")}₫</span>
-            <span className="text-sm text-muted-foreground">(70%)</span>
-          </div>
-        </Card>
-
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={() => navigate("/order/payment")}
-        >
-          Tiếp tục thanh toán
-          <ArrowRight className="w-5 h-5 ml-2" />
-        </Button>
-      </div>
-    </div>
-  );
+        <Card><h2 className="font-semibold mb-4">Chi phí xác nhận</h2><CostSummary price={price} /></Card>
+        <Button type="submit" size="lg" className="w-full" disabled={busy || !address.trim()}>{busy ? "Đang tạo đơn..." : "Tạo đơn và tiếp tục thanh toán"}</Button>
+      </form>}
+  </div>;
 }

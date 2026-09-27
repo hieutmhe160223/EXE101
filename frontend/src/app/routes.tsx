@@ -26,6 +26,9 @@ import { NotificationPage } from "./pages/NotificationPage";
 import { ExchangeRatePage } from "./pages/ExchangeRatePage";
 import { FAQPage } from "./pages/FAQPage";
 
+import { AdminPaymentReviewPage } from "./pages/admin/AdminPaymentReviewPage";
+import { AdminRefundManagementPage } from "./pages/admin/AdminRefundManagementPage";
+
 // Admin Screens
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminOrderManagementPage } from "./pages/admin/AdminOrderManagementPage";
@@ -71,6 +74,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: AdminDashboardPage },
       { path: "orders", Component: AdminOrderManagementPage },
+      { path: "payments", Component: AdminPaymentReviewPage },
+      { path: "refunds", Component: AdminRefundManagementPage },
       { path: "orders/:id", Component: AdminUpdateOrderPage },
       { path: "customers", Component: AdminCustomerManagementPage },
       { path: "complaints", Component: AdminComplaintManagementPage },
