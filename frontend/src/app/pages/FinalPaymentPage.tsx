@@ -4,6 +4,7 @@ import { CreditCard, Image, Video } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
 import api from "../utils/api";
+import { notify } from "../utils/notify";
 
 type InspectionMedia = {
   id: number;
@@ -73,7 +74,7 @@ export function FinalPaymentPage() {
       navigate(`/orders/${id}`);
     } catch (err: any) {
       console.error("Cannot pay final amount", err);
-      alert(err.response?.data?.message || err.response?.data || "Thanh toan that bai.");
+      notify.error(err.response?.data?.message || err.response?.data, "Thanh toán thất bại.");
     } finally {
       setPaying(false);
     }

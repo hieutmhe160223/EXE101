@@ -5,6 +5,7 @@ import { Card } from "../components/Card";
 import { ShoppingCart, Mail, Lock, User, Phone } from "lucide-react";
 import { useState } from "react";
 import api from "../utils/api";
+import { notify } from "../utils/notify";
 
 export function RegisterPage() {
   const navigate = useNavigate(); 
@@ -21,7 +22,7 @@ export function RegisterPage() {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Mật khẩu xác nhận không trùng khớp!");
+      notify.warning("Mật khẩu xác nhận không trùng khớp!");
       return;
     }
 
@@ -35,9 +36,9 @@ export function RegisterPage() {
       });
 
       if (typeof response.data === "object") {
-        alert("Đăng ký tài khoản thành công!");
+        notify.success("Đăng ký tài khoản thành công!");
       } else {
-        alert(response.data || "Đăng ký tài khoản thành công!");
+        notify.success(response.data, "Đăng ký tài khoản thành công!");
       }
 
       navigate("/login");
@@ -53,7 +54,7 @@ export function RegisterPage() {
       } else if (typeof responseData === "string") {
         errorMessage = responseData;
       }
-      alert(errorMessage);
+      notify.error(errorMessage, "Đăng ký tài khoản thất bại!");
     }
   };
 

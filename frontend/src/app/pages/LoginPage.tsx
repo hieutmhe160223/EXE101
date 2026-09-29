@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { ShoppingCart, Mail, Lock } from "lucide-react";
 import { useState } from "react";
 import api from "../utils/api";
+import { notify } from "../utils/notify";
 
 export function LoginPage() {
   const navigate = useNavigate(); 
@@ -41,7 +42,7 @@ export function LoginPage() {
 
       // Thông báo các component khác (VD: Header, Navbar) cập nhật lại trạng thái đăng nhập
       window.dispatchEvent(new Event("authChange"));
-      alert(`Chào mừng quay trở lại, ${data.fullName}!`);
+      notify.success(`Chào mừng quay trở lại, ${data.fullName}!`);
 
       // 2. Điều hướng thông minh dựa vào Role nhận từ Backend
       if (data.role === "ADMIN") {
@@ -54,7 +55,7 @@ export function LoginPage() {
       console.error("Lỗi đăng nhập:", error);
       
       const errorMessage = error.response?.data?.message || error.response?.data || "Đăng nhập thất bại!";
-      alert(errorMessage);
+      notify.error(errorMessage, "Đăng nhập thất bại!");
     }
   };
 

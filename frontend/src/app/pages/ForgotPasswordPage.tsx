@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { ShoppingCart, Mail, Lock, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import api from "../utils/api"; 
+import { notify } from "../utils/notify";
 
 function getRequestErrorMessage(err: any, fallback: string) {
   const responseMessage = err.response?.data?.message ||
@@ -60,7 +61,7 @@ export function ForgotPasswordPage() {
           newPassword: formData.newPassword,
         });
 
-        alert("Đổi mật khẩu thành công! Bạn sẽ được chuyển hướng về trang đăng nhập.");
+        notify.success("Đổi mật khẩu thành công! Bạn sẽ được chuyển hướng về trang đăng nhập.");
         navigate("/login");
       }
     } catch (err: any) {

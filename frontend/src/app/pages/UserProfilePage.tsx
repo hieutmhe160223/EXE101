@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import api from "../utils/api";
 import { AddressModal } from "./AddressModal";
 import { BankModal } from "./BankModal";
+import { confirmAction, notify } from "../utils/notify";
 
 interface Address {
   id: string | number;
@@ -56,11 +57,11 @@ export function UserProfilePage() {
       localStorage.setItem("userDob", dob);
       localStorage.setItem("userPhone", phone);
 
-      alert(response.data || "Cập nhật thông tin cá nhân thành công!");
+      notify.success(response.data, "Cập nhật thông tin cá nhân thành công!");
     } catch (error: any) {
       console.error("Lỗi chi tiết khi lưu vào Database:", error);
       const serverError = error.response?.data;
-      alert(typeof serverError === "string" ? serverError : "Có lỗi xảy ra, không thể chỉnh sửa thông tin vào Database!");
+      notify.error(serverError, "Có lỗi xảy ra, không thể cập nhật thông tin cá nhân!");
     }
   };
 
@@ -85,15 +86,19 @@ export function UserProfilePage() {
   };
 
   const handleBankDelete = async (bankId: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa tài khoản ngân hàng này không?")) return;
+    const confirmed = await confirmAction("Bạn có chắc chắn muốn xóa tài khoản ngân hàng này không?", {
+      title: "Xóa tài khoản ngân hàng",
+      confirmLabel: "Xóa",
+    });
+    if (!confirmed) return;
     try {
       
       await api.delete(`/user/banks/${bankId}`);
       setBanks(banks.filter((item) => item.id !== bankId));
-      alert("Xóa tài khoản ngân hàng thành công!");
+      notify.success("Xóa tài khoản ngân hàng thành công!");
     } catch (error) {
       console.error("Error deleting bank:", error);
-      alert("Không thể xóa tài khoản, vui lòng thử lại!");
+      notify.error("Không thể xóa tài khoản, vui lòng thử lại!");
     }
   };
 
@@ -126,16 +131,20 @@ export function UserProfilePage() {
 };
 
   const handleDelete = async (addressId: number) => {
-  if (!window.confirm("Bạn có chắc chắn muốn xóa địa chỉ này không?")) return;
+  const confirmed = await confirmAction("Bạn có chắc chắn muốn xóa địa chỉ này không?", {
+    title: "Xóa địa chỉ",
+    confirmLabel: "Xóa",
+  });
+  if (!confirmed) return;
 
   try {
     await api.delete(`/user/addresses/${addressId}`); 
     
     setAddresses(addresses.filter((item) => item.id !== addressId));
-    alert("Xóa địa chỉ thành công!");
+    notify.success("Xóa địa chỉ thành công!");
   } catch (error) {
     console.error("Error deleting address:", error);
-    alert("Không thể xóa địa chỉ, vui lòng thử lại!");
+    notify.error("Không thể xóa địa chỉ, vui lòng thử lại!");
   }
 };
 

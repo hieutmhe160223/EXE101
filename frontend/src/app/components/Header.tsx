@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router'; 
 import { ShoppingCart, Bell, User, Menu, Heart, Wallet, LogOut } from 'lucide-react';
+import { notify } from '../utils/notify';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export const Header: React.FC = () => {
     localStorage.clear(); 
     setIsLoggedIn(false); 
     window.dispatchEvent(new Event("authChange"));
-    alert("Đã đăng xuất tài khoản!");
+    notify.success("Đã đăng xuất tài khoản!");
     navigate("/");
   };
 

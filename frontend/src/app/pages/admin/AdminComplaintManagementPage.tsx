@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Eye, Search, X } from "lucide-react";
 import api from "../../utils/api";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { notify } from "../../utils/notify";
 
 type ComplaintStatus = "REQUESTED" | "REVIEWING" | "APPROVED" | "REJECTED" | "RETURNING" | "COMPLETED";
 
@@ -88,7 +89,7 @@ export function AdminComplaintManagementPage() {
       setSelected(response.data);
       setAdminNote(response.data.adminNote || "");
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Không thể tải chi tiết khiếu nại.");
+      notify.error(err?.response?.data?.message, "Không thể tải chi tiết khiếu nại.");
     }
   };
 
@@ -104,7 +105,7 @@ export function AdminComplaintManagementPage() {
       setAdminNote(response.data.adminNote || "");
       await fetchComplaints();
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Cập nhật khiếu nại thất bại.");
+      notify.error(err?.response?.data?.message, "Cập nhật khiếu nại thất bại.");
     } finally {
       setSaving(false);
     }
