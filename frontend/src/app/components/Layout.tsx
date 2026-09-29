@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { ShoppingCart, Package, Wallet, Gift, Bell, User, Menu, X, Search, LogOut } from "lucide-react";
+import { ShoppingCart, Package, Wallet, Gift, Bell, User, Menu, X, Search, LogOut, LayoutDashboard } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export function Layout() {
@@ -8,6 +8,7 @@ export function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [userFullName, setUserFullName] = useState("Tài khoản");
 
   const isAuthPage = ["/login", "/register", "/forgot-password"].includes(location.pathname);
@@ -16,6 +17,7 @@ export function Layout() {
     const checkAuth = () => {
       const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
       setIsLoggedIn(!!token);
+      setIsAdmin(localStorage.getItem("userRole") === "ADMIN");
 
       const fullName = localStorage.getItem("userFullName") || "Tài khoản";
       setUserFullName(fullName);
@@ -104,6 +106,15 @@ export function Layout() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-4">
+              {isLoggedIn && isAdmin && (
+                <Link
+                  to="/admin"
+                  className="hidden md:flex items-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Quay lại dashboard</span>
+                </Link>
+              )}
               {isLoggedIn ? (
                 <>
                   <Link
@@ -208,6 +219,16 @@ export function Layout() {
                 
                 {isLoggedIn ? (
                   <div className="flex flex-col gap-2 pt-4 border-t border-border px-4">
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        className="flex items-center gap-2 py-2.5 text-foreground"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <LayoutDashboard className="w-5 h-5" />
+                        Quay lại dashboard
+                      </Link>
+                    )}
                     <Link
                       to="/profile"
                       className="flex items-center gap-2 py-2.5 text-foreground"
