@@ -1,5 +1,5 @@
-import { isLoggedIn, getCurrentUser } from "../utils/auth";
-import { Outlet, Link, useLocation, Navigate } from "react-router";
+import { clearAuthData, isLoggedIn, getCurrentUser } from "../utils/auth";
+import { Outlet, Link, useLocation, useNavigate, Navigate } from "react-router";
 import {
   LayoutDashboard,
   Package,
@@ -11,17 +11,26 @@ import {
   Menu,
   X,
   ShoppingCart,
+  Home,
+  LogOut,
   RotateCcw,
 } from "lucide-react";
 import { useState } from "react";
 
 export function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const handleLogout = () => {
+    clearAuthData();
+    window.dispatchEvent(new Event("authChange"));
+    navigate("/login", { replace: true });
+  };
+
   const navItems = [
-    { path: "/admin/support", icon: MessageSquare, label: "Chat hỗ trợ" },
     { path: "/admin", icon: LayoutDashboard, label: "Tổng quan" },
+    { path: "/admin/support", icon: MessageSquare, label: "Chat hỗ trợ" },
     { path: "/admin/payments", icon: Package, label: "Đối soát chuyển khoản" },
     { path: "/admin/refunds", icon: RotateCcw, label: "Duyệt hoàn tiền" },
     { path: "/admin/orders", icon: Package, label: "Quản lý đơn hàng" },
@@ -99,11 +108,20 @@ export function AdminLayout() {
           <div className="absolute bottom-0 w-full p-4 border-t border-gray-700">
             <Link
               to="/"
+              onClick={() => setSidebarOpen(false)}
               className="flex items-center gap-2 px-4 py-3 text-gray-300 hover:text-white transition-colors"
             >
-              <ShoppingCart className="w-5 h-5" />
-              <span>Quay lại trang chủ</span>
+              <Home className="w-5 h-5" />
+              <span>Xem trang chủ</span>
             </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-3 text-gray-300 hover:text-white transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Đăng xuất</span>
+            </button>
           </div>
         </aside>
 
