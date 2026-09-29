@@ -22,8 +22,12 @@ public class ApifyItemDetail {
     public String getTitle() { return text("title"); }
     public String getDescription() { return text("description"); }
     public String getStatus() { return text("status"); }
-    public boolean isActive() { return "active".equalsIgnoreCase(getStatus()) || "published".equalsIgnoreCase(getStatus()); }
-    public BigDecimal getPrice() {
+public boolean isActive() { 
+    String status = getStatus();
+    return "online".equalsIgnoreCase(status) 
+        || "active".equalsIgnoreCase(status) 
+        || "published".equalsIgnoreCase(status); 
+}    public BigDecimal getPrice() {
         try { return new BigDecimal(Objects.requireNonNullElse(text("price"), "0")); }
         catch (NumberFormatException ex) { return BigDecimal.ZERO; }
     }

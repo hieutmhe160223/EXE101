@@ -15,21 +15,34 @@ interface SystemSettings {
 
 export function ExchangeRatePage() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
-  const historyData = [
-    { date: "10/06", rate: 3620 },
-    { date: "11/06", rate: 3630 },
-    { date: "12/06", rate: 3625 },
-    { date: "13/06", rate: 3640 },
-    { date: "14/06", rate: 3645 },
-    { date: "15/06", rate: 3650 },
-    { date: "16/06", rate: 3650 },
-  ];
 
   useEffect(() => {
     api.get<SystemSettings>("/settings").then((response) => setSettings(response.data)).catch(() => undefined);
   }, []);
 
   const exchangeRate = settings?.exchangeRate ?? 3650;
+  const historyData = (() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const values = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (6 - index));
+
+      const drift = (index - 3) * 12;
+      const wave = index % 2 === 0 ? -12 : 10;
+      const rate = Math.round(exchangeRate + drift + wave);
+
+      return {
+        date: date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+        rate,
+      };
+    });
+
+    return values;
+  })();
+
+  const yMin = Math.min(...historyData.map((item) => item.rate)) - 15;
+  const yMax = Math.max(...historyData.map((item) => item.rate)) + 15;
   const serviceRange = settings ? `${settings.serviceFeeMinPercent}-${settings.serviceFeeMaxPercent}%` : "5-8%";
 
   return (
@@ -87,9 +100,9 @@ export function ExchangeRatePage() {
           <LineChart data={historyData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
-            <YAxis domain={[3600, 3700]} />
-            <Tooltip />
-            <Line type="monotone" dataKey="rate" stroke="#FF6A00" strokeWidth={2} />
+            <YAxis domain={[yMin, yMax]} />
+            <Tooltip formatter={(value: number) => [`${Number(value).toLocaleString("vi-VN")} ₫`, "Tỷ giá"]} />
+            <Line type="monotone" dataKey="rate" stroke="#FF6A00" strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: "#fff" }} />
           </LineChart>
         </ResponsiveContainer>
       </Card>
