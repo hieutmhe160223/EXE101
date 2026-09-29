@@ -20,6 +20,7 @@ export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = [
+    { path: "/admin/support", icon: MessageSquare, label: "Chat hỗ trợ" },
     { path: "/admin", icon: LayoutDashboard, label: "Tổng quan" },
     { path: "/admin/payments", icon: Package, label: "Đối soát chuyển khoản" },
     { path: "/admin/refunds", icon: RotateCcw, label: "Duyệt hoàn tiền" },

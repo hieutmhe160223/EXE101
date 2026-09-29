@@ -192,6 +192,20 @@ test("profile page renders backend data and keeps profile and address actions us
 });
 test("support sends persisted API message and does not generate a fake reply",async({page})=>{
  await fixture(page);let messages:any[]=[];
+ let ticketCreated=false;
+ const ticket=()=>({id:5,subject:"Hỗ trợ khách hàng",topic:"GENERAL",status:"OPEN",orderId:null,orderCode:null,
+   assignedAdminName:null,lastMessage:messages[0] ? `Tin gần nhất: ${messages[0].message}` : null,updatedAt:"2026-09-16T10:00:00"});
+ await page.route("**/api/user/support/orders",r=>r.fulfill({json:[]}));
+ await page.route("**/api/user/support/stream",r=>r.fulfill({status:200,contentType:"text/event-stream",body:"event: connected\ndata: ok\n\n"}));
+ await page.route("**/api/user/support/tickets",async r=>{
+   if(r.request().method()==="POST"){
+     ticketCreated=true;
+     messages=[{id:1,senderName:"Khách kiểm thử",senderRole:"CUSTOMER",message:r.request().postDataJSON().initialMessage,attachmentUrl:null,createdAt:"2026-09-16T10:00:00"}];
+     return r.fulfill({status:201,json:ticket()});
+   }
+   return r.fulfill({json:ticketCreated?[ticket()]:[]});
+ });
+ await page.route("**/api/user/support/tickets/5/messages",r=>r.fulfill({json:messages}));
  await page.route("**/api/user/support",async r=>{
    if(r.request().method()==="POST"){messages=[{id:1,sender:"Khách kiểm thử",message:r.request().postDataJSON().message,createdAt:"2026-09-16"}];await r.fulfill({status:200});}
    else await r.fulfill({json:messages});

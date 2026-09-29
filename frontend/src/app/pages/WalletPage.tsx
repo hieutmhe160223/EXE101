@@ -59,7 +59,7 @@ export function WalletPage() {
           <p className="text-muted-foreground mt-1">Quản lý số dư, điểm thưởng và lịch sử giao dịch nạp/rút.</p>
         </div>
         <Button
-          variant={showTopUp ? "outline" : "default"}
+          variant={showTopUp ? "outline" : "primary"}
           onClick={() => setShowTopUp(!showTopUp)}
           className="self-start sm:self-auto"
         >

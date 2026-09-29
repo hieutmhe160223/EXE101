@@ -1,6 +1,7 @@
 package com.exe101.backend.controller;
 import com.exe101.backend.model.*;
 import com.exe101.backend.repository.UserAccountRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,7 +16,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 
 @SpringBootTest @AutoConfigureMockMvc @Transactional
 class PortalControllerTest {
- @Autowired MockMvc mvc; @Autowired EntityManager em; @Autowired UserAccountRepository users;
+ @Autowired MockMvc mvc; @Autowired EntityManager em; @Autowired UserAccountRepository users; @Autowired ObjectMapper json;
  @Test void allReadEndpointsReturnDatabaseDataAndProtectAdmin() throws Exception {
    for(String path:new String[]{"/user/profile","/user/wallet","/user/notifications","/user/referrals","/user/sourcing","/user/support"})
      mvc.perform(get("/api"+path).with(user("customer@example.com").roles("CUSTOMER"))).andExpect(status().isOk());
@@ -33,6 +34,22 @@ class PortalControllerTest {
    mvc.perform(post("/api/user/support").with(user("customer@example.com").roles("CUSTOMER")).contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"My private question\"}")).andExpect(status().isOk());
    mvc.perform(get("/api/user/support").with(user("customer@example.com").roles("CUSTOMER"))).andExpect(jsonPath("$[0].message").value("My private question"));
    mvc.perform(get("/api/user/support").with(user("admin@example.com").roles("ADMIN"))).andExpect(status().isForbidden());
+ }
+ @Test void supportTicketCanBeCreatedAndAnsweredByAdmin() throws Exception {
+   var created=mvc.perform(post("/api/user/support/tickets").with(user("customer@example.com").roles("CUSTOMER"))
+       .contentType(MediaType.APPLICATION_JSON)
+       .content("{\"topic\":\"BARGAIN\",\"subject\":\"Negotiate camera\",\"initialMessage\":\"Can you ask the shop?\"}"))
+       .andExpect(status().isCreated()).andExpect(jsonPath("$.topic").value("BARGAIN"))
+       .andExpect(jsonPath("$.status").value("OPEN")).andReturn();
+   long ticketId=json.readTree(created.getResponse().getContentAsByteArray()).get("id").asLong();
+   mvc.perform(post("/api/admin/support/tickets/"+ticketId+"/messages").with(user("admin@example.com").roles("ADMIN"))
+       .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"The shop accepted a discount.\"}"))
+       .andExpect(status().isOk()).andExpect(jsonPath("$.senderRole").value("ADMIN"));
+   mvc.perform(get("/api/user/support/tickets/"+ticketId+"/messages").with(user("customer@example.com").roles("CUSTOMER")))
+       .andExpect(status().isOk()).andExpect(jsonPath("$[0].message").value("Can you ask the shop?"))
+       .andExpect(jsonPath("$[1].message").value("The shop accepted a discount."));
+   mvc.perform(get("/api/user/support/tickets").with(user("customer@example.com").roles("CUSTOMER")))
+       .andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("WAITING_CUSTOMER"));
  }
  @Test void addressUpdateAndDeleteAffectOnlyOwner() throws Exception {
    var customer=users.findByEmail("customer@example.com").orElseThrow();

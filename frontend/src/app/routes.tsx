@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { Layout } from "./components/Layout";
 import { AdminLayout } from "./components/AdminLayout";
+import { RouteErrorPage } from "./components/RouteErrorPage";
 
 // Customer Screens
 import { HomePage } from "./pages/HomePage";
@@ -38,11 +39,13 @@ import { AdminComplaintManagementPage } from "./pages/admin/AdminComplaintManage
 import { AdminSettingsPage } from "./pages/admin/AdminSettingsPage";
 import { AdminCouponManagementPage } from "./pages/admin/AdminCouponManagementPage";
 import { AdminReportsPage } from "./pages/admin/AdminReportsPage";
+import { AdminSupportPage } from "./pages/admin/AdminSupportPage";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: Layout,
+    errorElement: <RouteErrorPage />,
     children: [
       { index: true, Component: HomePage },
       { path: "register", Component: RegisterPage },
@@ -71,6 +74,7 @@ export const router = createBrowserRouter([
   {
     path: "/admin",
     Component: AdminLayout,
+    errorElement: <RouteErrorPage />,
     children: [
       { index: true, Component: AdminDashboardPage },
       { path: "orders", Component: AdminOrderManagementPage },
@@ -79,6 +83,7 @@ export const router = createBrowserRouter([
       { path: "orders/:id", Component: AdminUpdateOrderPage },
       { path: "customers", Component: AdminCustomerManagementPage },
       { path: "complaints", Component: AdminComplaintManagementPage },
+      { path: "support", Component: AdminSupportPage },
       { path: "settings", Component: AdminSettingsPage },
       { path: "coupons", Component: AdminCouponManagementPage },
       { path: "reports", Component: AdminReportsPage },
