@@ -4,6 +4,7 @@ import { AlertCircle, Upload } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import api from "../utils/api";
+import { notify } from "../utils/notify";
 
 function getCustomerId() {
   return Number(localStorage.getItem("userId") || "2");
@@ -31,7 +32,7 @@ export function RefundRequestPage() {
       navigate(`/orders/${id}`);
     } catch (err: any) {
       console.error("Cannot create return request", err);
-      alert(err.response?.data?.message || err.response?.data || "Khong the gui yeu cau doi/tra.");
+      notify.error(err.response?.data?.message || err.response?.data, "Không thể gửi yêu cầu đổi/trả.");
     } finally {
       setSubmitting(false);
     }

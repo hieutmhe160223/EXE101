@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { ShoppingCart, Package, Wallet, Gift, Bell, User, Menu, X, Search, LogOut, LayoutDashboard } from "lucide-react";
 import { useState, useEffect } from "react";
+import { notify } from "../utils/notify";
 
 export function Layout() {
   const location = useLocation();
@@ -37,7 +38,7 @@ export function Layout() {
   const handleLogout = () => {
     localStorage.clear();
     setIsLoggedIn(false);
-    alert("Đã đăng xuất tài khoản!");
+    notify.success("Đã đăng xuất tài khoản!");
     navigate("/");
   };
 

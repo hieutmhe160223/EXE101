@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import api from "../../../app/utils/api";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { confirmAction, notify } from "../../utils/notify";
 import { 
   Search, 
   Eye, 
@@ -121,7 +122,11 @@ export function AdminCustomerManagementPage() {
     else if (newStatus === "ACTIVE") confirmMsg = `Bạn có chắc muốn MỞ KHÓA tài khoản của ${customer.fullName}?`;
     else if (newStatus === "DISABLED") confirmMsg = `CẢNH BÁO: Bạn có chắc muốn VÔ HIỆU HÓA tài khoản của ${customer.fullName}?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    const confirmed = await confirmAction(confirmMsg, {
+      title: "Xác nhận thay đổi trạng thái",
+      confirmLabel: "Tiếp tục",
+    });
+    if (!confirmed) return;
 
     try {
       await api.patch(`/v1/admin/customers/${customer.id}/status`, { status: newStatus });
@@ -129,8 +134,9 @@ export function AdminCustomerManagementPage() {
       if (customerDetail && customerDetail.id === customer.id) {
         setCustomerDetail({ ...customerDetail, status: newStatus });
       }
+      notify.success("Đã cập nhật trạng thái tài khoản.");
     } catch (err: any) {
-      alert("Cập nhật thất bại: " + (err?.response?.data?.message || err.message));
+      notify.error(err?.response?.data?.message || err.message, "Cập nhật trạng thái thất bại.");
     }
   };
 
@@ -142,7 +148,7 @@ export function AdminCustomerManagementPage() {
       const response = await api.get<CustomerDetailResponse>(`/v1/admin/customers/${id}`);
       setCustomerDetail(response.data);
     } catch (err: any) {
-      alert("Không thể tải thông tin chi tiết khách hàng!");
+      notify.error("Không thể tải thông tin chi tiết khách hàng!");
       setSelectedCustomerId(null);
     } finally {
       setLoadingDetail(false);

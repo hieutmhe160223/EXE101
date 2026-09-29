@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import api from "../utils/api"; 
+import { notify } from "../utils/notify";
 
 interface BankModalProps {
   bank: {
@@ -58,15 +59,15 @@ export function BankModal({ bank, onClose, onSaveSuccess }: BankModalProps) {
     try {
       if (bank && bank.id) {
         await api.put(`/user/banks/${bank.id}`, payload);
-        alert("Cập nhật tài khoản ngân hàng thành công!");
+        notify.success("Cập nhật tài khoản ngân hàng thành công!");
       } else {
         await api.post("/user/banks", payload);
-        alert("Thêm tài khoản ngân hàng thành công!");
+        notify.success("Thêm tài khoản ngân hàng thành công!");
       }
       onSaveSuccess();
     } catch (error: any) {
       console.error("Lỗi khi lưu tài khoản ngân hàng:", error);
-      alert(error.response?.data || "Có lỗi xảy ra, vui lòng thử lại!");
+      notify.error(error.response?.data, "Có lỗi xảy ra, vui lòng thử lại!");
     } finally {
       setLoading(false);
     }

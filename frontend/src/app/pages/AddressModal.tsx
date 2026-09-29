@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import api from "../utils/api"; 
+import { notify } from "../utils/notify";
 
 interface Address {
   id?: string | number;
@@ -48,7 +49,7 @@ export function AddressModal({ address, onClose, onSaveSuccess }: AddressModalPr
     e.preventDefault();
     const userEmail = localStorage.getItem("userEmail") || ""; 
     if (!userEmail) {
-      alert("Vui lòng đăng nhập để thực hiện chức năng này!");
+      notify.warning("Vui lòng đăng nhập để thực hiện chức năng này!");
       return;
     }
     
@@ -70,7 +71,7 @@ export function AddressModal({ address, onClose, onSaveSuccess }: AddressModalPr
       onSaveSuccess();
     } catch (error) {
       console.error("Error saving address:", error);
-      alert("Có lỗi xảy ra khi lưu địa chỉ!");
+      notify.error("Có lỗi xảy ra khi lưu địa chỉ!");
     }
   };
 

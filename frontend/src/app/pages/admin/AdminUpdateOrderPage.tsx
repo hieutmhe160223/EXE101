@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router";
 import api from "../../utils/api";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { notify } from "../../utils/notify";
 
 export function AdminUpdateOrderPage() {
   const { id } = useParams();
@@ -31,9 +32,9 @@ export function AdminUpdateOrderPage() {
     try {
       const response = await api.patch(`/v1/admin/orders/${id}/status`, { status });
       setOrder(response.data);
-      alert("Cập nhật trạng thái đơn hàng thành công.");
+      notify.success("Cập nhật trạng thái đơn hàng thành công.");
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Cập nhật trạng thái thất bại.");
+      notify.error(err?.response?.data?.message, "Cập nhật trạng thái thất bại.");
     } finally { setSaving(false); }
   };
 

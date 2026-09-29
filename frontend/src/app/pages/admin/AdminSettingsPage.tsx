@@ -3,6 +3,7 @@ import { DollarSign, RefreshCw, Save, TrendingUp, Truck } from "lucide-react";
 import api from "../../utils/api";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { notify } from "../../utils/notify";
 
 interface SystemSettings {
   exchangeRate: number;
@@ -50,7 +51,7 @@ export function AdminSettingsPage() {
     try {
       const response = await api.patch<SystemSettings>("/v1/admin/settings", settings);
       setSettings(response.data);
-      alert("Đã cập nhật cài đặt hệ thống.");
+      notify.success("Đã cập nhật cài đặt hệ thống.");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Không thể lưu cài đặt hệ thống.");
     } finally {
